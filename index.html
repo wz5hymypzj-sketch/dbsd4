@@ -19,7 +19,7 @@
   }
 </script>
 
-<title>DAN'S BEAT SPEED DETECTOR - V52</title>
+<title>DAN'S BEAT SPEED DETECTOR - V55</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -127,6 +127,7 @@
   }
   #captureStateLbl { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; font-weight: 900; color: #666; text-transform: uppercase; }
 
+  /* STRICT FLEXBOX BOUNDARIES */
   .layout-wrapper { display: flex; flex-direction: column; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
   .left-panel { display: flex; flex-direction: column; flex-shrink: 0; }
   .right-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
@@ -247,35 +248,6 @@
     .right-panel { flex: 45; height: 100%; display: flex; flex-direction: column; min-height: 0; }
   }
 </style>
-<script>
-  (function generateAppIcon() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 256, 256);
-    ctx.font = 'italic 900 110px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const lines = [ { text: 'DB', x: 124, y: 80 }, { text: 'SD', x: 124, y: 185 } ];
-    ctx.fillStyle = '#000000';
-    const offsets = [ [6,6], [-6,-6], [6,-6], [-6,6], [6,0], [-6,0], [0,6], [0,-6], [4,4], [-4,-4], [4,-4], [-4,4] ];
-    lines.forEach(line => { offsets.forEach(off => { ctx.fillText(line.text, line.x + off[0], line.y + off[1]); }); });
-    ctx.fillStyle = '#ff0000';
-    lines.forEach(line => { ctx.fillText(line.text, line.x, line.y); });
-    const dataUrl = canvas.toDataURL('image/png');
-    const icon = document.createElement('link');
-    icon.rel = 'icon';
-    icon.type = 'image/png';
-    icon.href = dataUrl;
-    document.head.appendChild(icon);
-    const appleIcon = document.createElement('link');
-    appleIcon.rel = 'apple-touch-icon';
-    appleIcon.href = dataUrl;
-    document.head.appendChild(appleIcon);
-  })();
-</script>
 </head>
 <body>
 
@@ -605,12 +577,13 @@ window.startAudioEngine = async function() {
     if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
     
     try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
-        
+        // FIXED: Prompt for mic FIRST to preserve user gesture token
         micStream = await navigator.mediaDevices.getUserMedia({ 
             audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } 
         });
+        
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
         
         const src = audioCtx.createMediaStreamSource(micStream);
         
@@ -720,19 +693,7 @@ function getDynamicThresholds(midiNote, ivKey) {
   return { env: Math.max(0.0001, minEnv), snr: Math.max(1.0, minSnr) };
 }
 
-function getBeatDesc(val) {
-    if(val === null || isNaN(val)) return '';
-    if(val < 0.25) return 'PURE / STILL';
-    if(val < 0.85) return 'SLOW BREATHING';
-    if(val < 1.6) return 'HEARTBEAT';
-    if(val < 3.5) return 'WALKING PACE';
-    if(val < 6.0) return 'JOGGING';
-    if(val < 9.0) return 'FAST TAPPING';
-    if(val < 13.0) return 'RAPID FLUTTER';
-    return 'MOTOR / PURR';
-}
-
-let curIv = 'M3', lowerMidi = 53, rollBaseMidi = 48; // Base set to C3 for standard layout
+let curIv = 'M3', lowerMidi = 53, rollBaseMidi = 53; // Locked explicitly to MIDI 53 (F3) default base note
 let currentOctMode = 'OCT_42';
 let audioCtx = null, analyserFull = null, analyserTuner = null, filters = [], tunerFilter = null, gainNode = null, monitorGain = null;
 let isRunning = false, micPaused = false, monitorOn = false, rafId = null, currentChunkSize = 512; 
@@ -754,6 +715,12 @@ let isGraderActive = false;
 
 const $ = id => document.getElementById(id);
 const avgEl = $('avgVal'), sigLight = $('signalLight');
+
+function setBeatDesc(val) {
+    if(val === null || isNaN(val) || captureState==='LISTEN_ONLY') { return; }
+    let desc = getBeatDesc(val);
+    $('lblTarget').innerHTML = `~${getConfig(lowerMidi, curIv).theoBeat.toFixed(2)} (${desc})`;
+}
 
 function loadPersistence() {
   const savedLogs = localStorage.getItem('danDetectorLogs');
@@ -1012,6 +979,7 @@ function renderLogTable() {
 
 function getLogVal(iv, noteNameStr) { let e = loggedIntervals[iv].find(x => x.noteName === noteNameStr); return e ? e.measured : null; }
 
+// Centralized dynamic sync updates
 function updateActionButtons() {
   document.querySelectorAll('.action-btn:not(.listen-btn)').forEach(btn => {
     let iv = btn.dataset.iv;
@@ -1105,7 +1073,7 @@ function checkStep6() {
   }
 
   if(!m3f) {
-      res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-wait';
+      res.className = err ? 'guide-result guide-res-wait' : 'guide-result guide-res-wait';
       res.innerHTML = html + "<br><i>Log M3 to check dip...</i>";
       return;
   }
@@ -1139,7 +1107,7 @@ function checkStep7() {
   }
 
   if(!m3_b) {
-      res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-wait';
+      res.className = err ? 'guide-result guide-res-wait' : 'guide-result guide-res-wait';
       res.innerHTML = html + "<br><i>Log M3 to check dip...</i>";
       return;
   }
@@ -1173,7 +1141,7 @@ function checkStep8() {
   }
 
   if(!m3_b) {
-      res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-wait';
+      res.className = err ? 'guide-result guide-res-wait' : 'guide-result guide-res-wait';
       res.innerHTML = html + "<br><i>Log M3 to check dip...</i>";
       return;
   }
@@ -1372,7 +1340,6 @@ window.checkStep12 = function() {
     res.innerHTML = html;
 }
 
-// --- DYNAMIC EXPANDERS ---
 window.changeExpandNote = function(dir, isUp) {
   if(isUp) { expUpMidi += dir; if(expUpMidi > 108) expUpMidi = 108; if(expUpMidi < 66) expUpMidi = 66; }
   else { expDownMidi += dir; if(expDownMidi < 21) expDownMidi = 21; if(expDownMidi > 52) expDownMidi = 52; }
@@ -1421,11 +1388,10 @@ function renderDynExpanders() {
   updateDynRes();
 }
 
-// --- DYNAMIC SWEEP CHECKER ---
 window.setSweep = function(iv) {
   sweepIvType = iv;
-  if(iv === 'M3' || iv === 'M6') sweepMidi = 41; // Reset to F2
-  if(iv === 'M10' || iv === 'M17') sweepMidi = 29; // Reset to F1
+  if(iv === 'M3' || iv === 'M6') sweepMidi = 41; 
+  if(iv === 'M10' || iv === 'M17') sweepMidi = 29; 
   renderSweep();
 }
 
@@ -1522,104 +1488,6 @@ function runTuner() {
   if(tunerActive) requestAnimationFrame(runTuner);
 }
 
-$('bigStartBtn').addEventListener('click', async () => {
-  $('startOverlay').style.display = 'none';
-  buildPianoRoll(); // Safari layout fix: force piano roll to draw after display:none
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
-    
-    // Clean, secure, single mic request to prevent iOS PWA rejection
-    micStream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } 
-    });
-    
-    const src = audioCtx.createMediaStreamSource(micStream);
-    
-    analyserFull = audioCtx.createAnalyser(); analyserFull.fftSize = 4096; analyserFull.smoothingTimeConstant = 0.7;
-    tunerFilter = audioCtx.createBiquadFilter(); 
-    tunerFilter.type = 'bandpass'; tunerFilter.frequency.value = 440.0; tunerFilter.Q.value = 3.0; 
-    analyserTuner = audioCtx.createAnalyser(); analyserTuner.fftSize = 4096;
-    src.connect(tunerFilter); tunerFilter.connect(analyserTuner);
-
-    const cfg = getConfig(lowerMidi, curIv); filters = buildFilters(cfg);
-    gainNode = audioCtx.createGain(); gainNode.gain.value = 250.0; 
-    monitorGain = audioCtx.createGain(); monitorGain.gain.value = monitorOn && !micPaused ? 25.0 : 0.0;
-    scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
-
-    src.connect(analyserFull); 
-    src.connect(filters[0]); 
-    filters[0].connect(filters[1]); 
-    filters[1].connect(gainNode); 
-    filters[1].connect(monitorGain); 
-    monitorGain.connect(audioCtx.destination);
-    gainNode.connect(scriptNode); 
-    scriptNode.connect(audioCtx.destination);
-
-    scriptNode.onaudioprocess = buildAudioProcessor();
-    isRunning = true; 
-    lastEnvelope = 0; 
-    rafId = requestAnimationFrame(renderLoop);
-  } catch(e) { 
-    console.warn("Audio start failed: ", e);
-    alert("Microphone access failed. Please ensure mic permissions are granted in iOS Settings for Home Screen apps.");
-    $('startOverlay').style.display = 'flex'; 
-  }
-});
-
-let smoothedEnvelope = 0; 
-
-function buildAudioProcessor() {
-  return (e) => {
-    if (!isRunning || micPaused) return;
-    const inputData = e.inputBuffer.getChannelData(0);
-    for (let offset = 0; offset < inputData.length; offset += currentChunkSize) {
-      let sum = 0, limit = Math.min(currentChunkSize, inputData.length - offset);
-      for (let i = 0; i < limit; i++) sum += inputData[offset + i] * inputData[offset + i];
-      const rms = Math.sqrt(sum / limit); 
-      
-      smoothedEnvelope = (smoothedEnvelope * 0.7) + (rms * 0.3);
-      envelopeRunning = smoothedEnvelope;
-      
-      const strikeMult = 2.0; 
-      const isStrike = (envelopeRunning > lastEnvelope * strikeMult) && (envelopeRunning > 0.005);
-      lastEnvelope = envelopeRunning;
-      noiseFloor = noiseFloor * 0.996 + Math.min(envelopeRunning, noiseFloor * 1.5) * 0.004;
-      if (noiseFloor < 0.000001) noiseFloor = 0.000001;
-      const snr = envelopeRunning / noiseFloor;
-      
-      if (isStrike && snr > 2.5) {
-        const timeNow = performance.now();
-        if (timeNow - lastAttackTime > 400 && (captureState === 'IDLE' || captureState === 'LOCKED')) {
-          envHistory = []; lastAttackTime = timeNow; transientSamplesLeft = 12; 
-          captureState = 'WAIT'; captureStartTime = timeNow; capturedBeats = [];
-          $('captureStateLbl').textContent = 'WAITING...'; $('captureStateLbl').style.color = '#ff9900';
-        }
-      }
-      if (transientSamplesLeft > 0) { transientSamplesLeft--; }
-      else { 
-          envHistory.push({ val: envelopeRunning }); 
-          const fps = audioCtx.sampleRate / currentChunkSize; 
-          if (envHistory.length > Math.round(7.5 * fps)) envHistory.shift(); 
-      }
-    }
-  };
-}
-
-function buildFilters(cfg) {
-  const Q = (cfg.center / (cfg.bpHi - cfg.bpLo)) * 0.75;
-  const f1 = audioCtx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = cfg.center; f1.Q.value = Q;
-  const f2 = audioCtx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = cfg.center; f2.Q.value = Q;
-  return [f1, f2];
-}
-
-function retuneFilters(cfg) {
-  if (!audioCtx || filters.length === 0) return;
-  const Q = (cfg.center / (cfg.bpHi - cfg.bpLo)) * 0.75;
-  filters[0].frequency.value = cfg.center; filters[0].Q.value = Q; 
-  filters[1].frequency.value = cfg.center; filters[1].Q.value = Q; 
-}
-
 function renderLoop(ts) {
   if (!isRunning) return; rafId = requestAnimationFrame(renderLoop); if (micPaused) return;
   
@@ -1636,9 +1504,9 @@ function renderLoop(ts) {
   if (snr > threshold.snr && envelopeRunning > threshold.env) { sigLight.style.background = '#00ff00'; } else { sigLight.style.background = '#e0e0e0'; }
   let now = performance.now(); const fps = audioCtx.sampleRate / currentChunkSize; 
   
-  let minHistFrames = Math.round(fps * 0.5);
+  let minHistFrames = Math.round(fps * 0.3);
 
-  if (captureState === 'WAIT' && now - captureStartTime > 600) { 
+  if (captureState === 'WAIT' && now - captureStartTime > 400) { 
       captureState = 'CAPTURING'; 
       $('captureStateLbl').textContent = 'RECORDING...'; 
       $('captureStateLbl').style.color = '#d00000'; 
@@ -1652,16 +1520,14 @@ function renderLoop(ts) {
               avgEl.textContent = beat.toFixed(2);
               setBeatDesc(beat);
 
-              // REINTRODUCED: Very forgiving early fast-lock
-              if (capturedBeats.length >= 8) {
-                  let recent = capturedBeats.slice(-8);
-                  let sorted = [...recent].sort((a,b)=>a-b);
-                  let med = sorted[4];
-                  let tol = Math.max(0.5, med * 0.08); 
-                  let stableCount = recent.filter(b => Math.abs(b - med) <= tol).length;
+              // RE-INTEGRATED FIXED WINDOW: 4 generic windows matching within 15% breaks loose instantly
+              if (capturedBeats.length >= 4) {
+                  let recent = capturedBeats.slice(-4);
+                  let minB = Math.min(...recent);
+                  let maxB = Math.max(...recent);
                   
-                  if (stableCount >= 6) { 
-                      lockedAverage = med; 
+                  if (maxB - minB < Math.max(0.8, minB * 0.15)) { 
+                      lockedAverage = recent.reduce((a,b)=>a+b)/recent.length;
                       avgEl.textContent = lockedAverage.toFixed(2);
                       setBeatDesc(lockedAverage);
                       $('captureStateLbl').textContent = 'SAVED!'; 
@@ -1675,14 +1541,14 @@ function renderLoop(ts) {
           }
       }
       
-      // DYNAMIC TARGET-BASED WAIT TIME (Will NEVER discard data)
+      let isFastMode = ['M3', 'M6', 'M10', 'M17'].includes(curIv);
       let targetBPS = cfg.theoBeat;
       if (targetBPS < 0.2) targetBPS = 0.5; 
       let dynamicWaitTimeMs = (3.5 / targetBPS) * 1000;
-      let maxWaitTime = Math.max(1200, Math.min(6000, dynamicWaitTimeMs));
+      let maxWaitTime = Math.max(1500, Math.min(6000, dynamicWaitTimeMs));
       
-      // Force log exactly when time is up, or if string naturally fades out early
-      if (now - captureStartTime > maxWaitTime || snr < threshold.snr * 0.8 || envelopeRunning < threshold.env * 0.8) {
+      // FIXED UNCONDITIONAL MEDIAN SAVE
+      if (now - captureStartTime > maxWaitTime || snr < threshold.snr * 0.5 || envelopeRunning < threshold.env * 0.5) {
           if (capturedBeats.length >= 1) { 
               capturedBeats.sort((a,b) => a-b); 
               let median = capturedBeats[Math.floor(capturedBeats.length/2)];
@@ -1768,7 +1634,8 @@ function detectBeat(history, theoreticalBeat, ivKey) {
   return maxScore > 0.005 ? bestCandidate : null;
 }
 
-// SYNC FIX: Centralize tab clicks through the setTarget function
+$('clearBtn').addEventListener('click', () => { loggedIntervals = { M3: [], M6: [], P4: [], P5: [], OCT_42: [], OCT_63: [], OCT_21: [], M10: [], 'OCT+2': [], M17: [] }; savePersistence(); resetCapture(); renderLogTable(); analyzeTemperament(); updateGuide(); updateDynRes(); });
+
 document.querySelectorAll('.iv-tab').forEach(t => { 
   t.addEventListener('click', () => { 
     let selectedIv = t.dataset.iv;
@@ -1783,6 +1650,60 @@ document.querySelectorAll('.iv-tab').forEach(t => {
     }
     setTarget(lowerMidi, selectedIv);
   }); 
+});
+
+// FIXED: Extracted audio init to a shared function
+const initAppAudio = async () => {
+  $('startOverlay').style.display = 'none';
+  buildPianoRoll(); 
+  try {
+    // PROMPT FOR MIC FIRST
+    micStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } 
+    });
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    
+    const src = audioCtx.createMediaStreamSource(micStream);
+    
+    analyserFull = audioCtx.createAnalyser(); analyserFull.fftSize = 4096; analyserFull.smoothingTimeConstant = 0.7;
+    tunerFilter = audioCtx.createBiquadFilter(); 
+    tunerFilter.type = 'bandpass'; tunerFilter.frequency.value = 440.0; tunerFilter.Q.value = 3.0; 
+    analyserTuner = audioCtx.createAnalyser(); analyserTuner.fftSize = 4096;
+    src.connect(tunerFilter); tunerFilter.connect(analyserTuner);
+
+    const cfg = getConfig(lowerMidi, curIv); filters = buildFilters(cfg);
+    gainNode = audioCtx.createGain(); gainNode.gain.value = 250.0; 
+    monitorGain = audioCtx.createGain(); monitorGain.gain.value = monitorOn && !micPaused ? 25.0 : 0.0;
+    scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+
+    src.connect(analyserFull); 
+    src.connect(filters[0]); 
+    filters[0].connect(filters[1]); 
+    filters[1].connect(gainNode); 
+    filters[1].connect(monitorGain); 
+    monitorGain.connect(audioCtx.destination);
+    gainNode.connect(scriptNode); 
+    scriptNode.connect(audioCtx.destination);
+
+    scriptNode.onaudioprocess = buildAudioProcessor();
+    isRunning = true; 
+    lastEnvelope = 0; 
+    rafId = requestAnimationFrame(renderLoop);
+  } catch(e) { 
+    console.warn("Audio start failed: ", e);
+    alert("Microphone access failed. Please ensure mic permissions are granted in iOS Settings for Home Screen apps.");
+    $('startOverlay').style.display = 'flex'; 
+  }
+};
+
+// FIXED: Bound to both Click and Enter Key
+$('bigStartBtn').addEventListener('click', initAppAudio);
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && $('startOverlay').style.display !== 'none') {
+    initAppAudio();
+  }
 });
 
 enforceReblitzLimits(); buildPianoRoll(); renderDynExpanders(); renderSweep();
