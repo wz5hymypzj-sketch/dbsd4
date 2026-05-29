@@ -19,7 +19,7 @@
   }
 </script>
 
-<title>DAN'S BEAT SPEED DETECTOR - V47</title>
+<title>DAN'S BEAT SPEED DETECTOR - V48</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -127,6 +127,7 @@
   }
   #captureStateLbl { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; font-weight: 900; color: #666; text-transform: uppercase; }
 
+  /* STRICT FLEXBOX BOUNDARIES TO PREVENT SCROLL BLOWOUT */
   .layout-wrapper { display: flex; flex-direction: column; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
   .left-panel { display: flex; flex-direction: column; flex-shrink: 0; }
   .right-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
@@ -1369,6 +1370,198 @@ window.checkStep12 = function() {
     res.innerHTML = html;
 }
 
+// --- DYNAMIC EXPANDERS ---
+window.changeExpandNote = function(dir, isUp) {
+  if(isUp) { expUpMidi += dir; if(expUpMidi > 108) expUpMidi = 108; if(expUpMidi < 66) expUpMidi = 66; }
+  else { expDownMidi += dir; if(expDownMidi < 21) expDownMidi = 21; if(expDownMidi > 52) expDownMidi = 52; }
+  renderDynExpanders();
+}
+
+function renderDynExpanders() {
+  $('dynUpTarget').textContent = noteName(expUpMidi);
+  $('btnUpMinus').disabled = (expUpMidi <= 66);
+  $('btnDownPlus').disabled = (expDownMidi >= 52);
+
+  let lBtnsU = ''; let uBtns = '';
+  let uP8 = expUpMidi - 12, uM10 = expUpMidi - 16, uM17 = expUpMidi - 28, uDouble = expUpMidi - 24;
+  
+  if(uP8 >= 21) {
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_42')">4:2</button>`;
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_63')">6:3</button>`;
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_21')">2:1</button>`;
+      if(uDouble >= 21) lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uDouble}, 'OCT+2')">OCT+2</button>`;
+      
+      uBtns += `<button class="action-btn" onclick="handleAction(this, ${uP8}, 'OCT_42')" data-midi="${uP8}" data-iv="OCT_42" data-label="${noteName(uP8)} OCT ${noteName(uP8+12)}">${noteName(uP8)} OCT ${noteName(uP8+12)}</button>`;
+  }
+  if(uM10 >= 21) uBtns += `<button class="action-btn" onclick="handleAction(this, ${uM10}, 'M10')" data-midi="${uM10}" data-iv="M10" data-label="${noteName(uM10)} M10 ${noteName(uM10+16)}">${noteName(uM10)} M10 ${noteName(uM10+16)}</button>`;
+  if(uM17 >= 21) uBtns += `<button class="action-btn" onclick="handleAction(this, ${uM17}, 'M17')" data-midi="${uM17}" data-iv="M17" data-label="${noteName(uM17)} M17 ${noteName(uM17+28)}">${noteName(uM17)} M17 ${noteName(uM17+28)}</button>`;
+  
+  $('dynUpListenBtns').innerHTML = lBtnsU;
+  $('dynUpBtns').innerHTML = uBtns;
+
+  $('dynDownTarget').textContent = noteName(expDownMidi);
+  let lBtnsD = ''; let dBtns = '';
+  
+  if(expDownMidi + 12 <= 108) {
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_42')">4:2</button>`;
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_63')">6:3</button>`;
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_21')">2:1</button>`;
+      if(expDownMidi + 24 <= 108) lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT+2')">OCT+2</button>`;
+      
+      dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'OCT_42')" data-midi="${expDownMidi}" data-iv="OCT_42" data-label="${noteName(expDownMidi)} OCT ${noteName(expDownMidi+12)}">${noteName(expDownMidi)} OCT ${noteName(expDownMidi+12)}</button>`;
+  }
+  if(expDownMidi + 16 <= 108) dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'M10')" data-midi="${expDownMidi}" data-iv="M10" data-label="${noteName(expDownMidi)} M10 ${noteName(expDownMidi+16)}">${noteName(expDownMidi)} M10 ${noteName(expDownMidi+16)}</button>`;
+  if(expDownMidi + 28 <= 108) dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'M17')" data-midi="${expDownMidi}" data-iv="M17" data-label="${noteName(expDownMidi)} M17 ${noteName(expDownMidi+28)}">${noteName(expDownMidi)} M17 ${noteName(expDownMidi+28)}</button>`;
+  
+  $('dynDownListenBtns').innerHTML = lBtnsD;
+  $('dynDownBtns').innerHTML = dBtns;
+  
+  updateDynRes();
+}
+
+// --- DYNAMIC SWEEP CHECKER ---
+window.setSweep = function(iv) {
+  sweepIvType = iv;
+  if(iv === 'M3' || iv === 'M6') sweepMidi = 41; // Reset to F2
+  if(iv === 'M10' || iv === 'M17') sweepMidi = 29; // Reset to F1
+  renderSweep();
+}
+
+window.changeSweepNote = function(dir) {
+  sweepMidi += dir;
+  let min = IV[sweepIvType].min;
+  let max = IV[sweepIvType].max;
+  if(sweepMidi < min) sweepMidi = min;
+  if(sweepMidi > max) sweepMidi = max;
+  renderSweep();
+}
+
+window.triggerSweepTarget = function() {
+  setTarget(sweepMidi, sweepIvType);
+}
+
+function renderSweep() {
+  let tgt = $('dynSweepTarget');
+  if(!tgt) return;
+  tgt.textContent = noteName(sweepMidi);
+  $('sweepCurrentInterval').innerHTML = `${sweepIvType} Sweep:<br>${noteName(sweepMidi)} &rarr; ${noteName(sweepMidi + IV[sweepIvType].sem)}`;
+  
+  let val = getLogVal(sweepIvType, noteName(sweepMidi));
+  let res = $('dynSweepRes');
+  if(val !== null) {
+    res.innerHTML = `${sweepIvType} measured at: <b>${val.toFixed(2)} bps</b>`;
+    res.className = 'guide-result guide-res-pass';
+  } else {
+    res.innerHTML = 'Log interval to track sweep...';
+    res.className = 'guide-result guide-res-wait';
+  }
+}
+
+function updateDynRes() {
+  let upP8 = getLogVal('OCT_42', noteName(expUpMidi - 12));
+  let uRes = $('dynUpRes');
+  if(upP8 !== null) {
+    uRes.innerHTML = `OCT: ${upP8.toFixed(1)}<br>Verify speeds fit your progression.`; uRes.className = 'guide-result';
+  } else { uRes.innerHTML = 'Log intervals to analyze...'; uRes.className = 'guide-result guide-res-wait'; }
+
+  let dP8 = getLogVal('OCT_42', noteName(expDownMidi));
+  let dRes = $('dynDownRes');
+  if(dP8 !== null) {
+    dRes.innerHTML = `OCT: ${dP8.toFixed(1)}<br>Verify speeds fit your progression.`; dRes.className = 'guide-result';
+  } else { dRes.innerHTML = 'Log intervals to analyze...'; dRes.className = 'guide-result guide-res-wait'; }
+  
+  renderSweep();
+  updateActionButtons();
+}
+
+function getPitchYin(buf, sampleRate) {
+  let threshold = 0.15; let SIZE = buf.length; let halfSize = Math.floor(SIZE / 2);
+  let yinBuffer = new Float32Array(halfSize); yinBuffer[0] = 1; let runningSum = 0; let foundTau = -1;
+  for (let tau = 1; tau < halfSize; tau++) { for (let i = 0; i < halfSize; i++) { let delta = buf[i] - buf[i + tau]; yinBuffer[tau] += delta * delta; } }
+  for (let tau = 1; tau < halfSize; tau++) { runningSum += yinBuffer[tau]; yinBuffer[tau] *= tau / runningSum; }
+  for (let tau = 2; tau < halfSize; tau++) { if (yinBuffer[tau] < threshold) { while (tau + 1 < halfSize && yinBuffer[tau + 1] < yinBuffer[tau]) { tau++; } foundTau = tau; break; } }
+  if (foundTau === -1) { let minVal = Infinity; for (let tau = 2; tau < halfSize; tau++) { if (yinBuffer[tau] < minVal) { minVal = yinBuffer[tau]; foundTau = tau; } } }
+  let s0 = yinBuffer[foundTau - 1]; let s1 = yinBuffer[foundTau]; let s2 = yinBuffer[foundTau + 1]; let shift = 0;
+  if (s0 !== undefined && s2 !== undefined) { let denom = 2 * (s0 - 2*s1 + s2); if (denom !== 0) shift = (s0 - s2) / denom; }
+  return sampleRate / (foundTau + shift);
+}
+
+function runTuner() {
+  if(!tunerActive || !isRunning || micPaused) return;
+  analyserTuner.getFloatTimeDomainData(tunerDataArray);
+  let rawPitch = getPitchYin(tunerDataArray, audioCtx.sampleRate);
+  
+  let targetF = tunerFilter ? tunerFilter.frequency.value : 440.0;
+  
+  if(rawPitch > targetF * 0.95 && rawPitch < targetF * 1.05) { 
+    pitchHistory.push(rawPitch);
+    if(pitchHistory.length > 5) pitchHistory.shift(); 
+    
+    let sorted = [...pitchHistory].sort((a,b) => a-b);
+    let medianPitch = sorted[Math.floor(sorted.length/2)];
+    
+    if (smoothedPitch === -1 || Math.abs(smoothedPitch - medianPitch) > 2.0) {
+        smoothedPitch = medianPitch;
+    } else {
+        smoothedPitch = (smoothedPitch * 0.8) + (medianPitch * 0.2);
+    }
+
+    let cents = 1200 * Math.log2(smoothedPitch / targetF);
+    let color = Math.abs(cents) < 1.5 ? '#00aa00' : '#d00000';
+    let sign = cents > 0 ? '+' : ''; 
+    let text = `${sign}${cents.toFixed(1)}c`;
+    
+    $('tunerReadout').innerHTML = `<span style="font-size:1.4rem; font-weight:900; line-height:1.2;">${smoothedPitch.toFixed(1)} Hz</span><br><span style="color:${color}; font-weight:900; font-size:0.9rem;">${text}</span>`;
+  } else { 
+    if(pitchHistory.length > 0) pitchHistory.shift();
+    if(pitchHistory.length === 0) smoothedPitch = -1; 
+  }
+  
+  if(tunerActive) requestAnimationFrame(runTuner);
+}
+
+$('bigStartBtn').addEventListener('click', async () => {
+  $('startOverlay').style.display = 'none';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    micStream = stream;
+    const constraints = await getBuiltInMicConstraints();
+    if (constraints.deviceId) {
+      stream.getTracks().forEach(t => t.stop());
+      const betterStream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+      micStream = betterStream;
+    }
+    const activeStream = micStream;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    const src = audioCtx.createMediaStreamSource(activeStream);
+    analyserFull = audioCtx.createAnalyser(); analyserFull.fftSize = 4096; analyserFull.smoothingTimeConstant = 0.7;
+    
+    tunerFilter = audioCtx.createBiquadFilter(); 
+    tunerFilter.type = 'bandpass'; 
+    tunerFilter.frequency.value = 440.0; 
+    tunerFilter.Q.value = 3.0; 
+    
+    analyserTuner = audioCtx.createAnalyser(); 
+    analyserTuner.fftSize = 4096;
+    src.connect(tunerFilter); tunerFilter.connect(analyserTuner);
+
+    const cfg = getConfig(lowerMidi, curIv); filters = buildFilters(cfg);
+    gainNode = audioCtx.createGain(); gainNode.gain.value = 250.0; 
+    monitorGain = audioCtx.createGain(); monitorGain.gain.value = monitorOn && !micPaused ? 25.0 : 0.0;
+    scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+
+    src.connect(analyserFull); src.connect(filters[0]); filters[0].connect(filters[1]);
+    filters[1].connect(gainNode); filters[1].connect(monitorGain); monitorGain.connect(audioCtx.destination);
+    gainNode.connect(scriptNode); scriptNode.connect(audioCtx.destination);
+
+    scriptNode.onaudioprocess = buildAudioProcessor();
+    isRunning = true; lastEnvelope = 0; rafId = requestAnimationFrame(renderLoop);
+  } catch(e) { alert('Microphone setup failed:\n' + e.message); $('startOverlay').style.display = 'flex'; }
+});
+
+let smoothedEnvelope = 0; 
+
 function buildAudioProcessor() {
   return (e) => {
     if (!isRunning || micPaused) return;
@@ -1404,6 +1597,20 @@ function buildAudioProcessor() {
       }
     }
   };
+}
+
+function buildFilters(cfg) {
+  const Q = (cfg.center / (cfg.bpHi - cfg.bpLo)) * 0.75;
+  const f1 = audioCtx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = cfg.center; f1.Q.value = Q;
+  const f2 = audioCtx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = cfg.center; f2.Q.value = Q;
+  return [f1, f2];
+}
+
+function retuneFilters(cfg) {
+  if (!audioCtx || filters.length === 0) return;
+  const Q = (cfg.center / (cfg.bpHi - cfg.bpLo)) * 0.75;
+  filters[0].frequency.value = cfg.center; filters[0].Q.value = Q; 
+  filters[1].frequency.value = cfg.center; filters[1].Q.value = Q; 
 }
 
 function renderLoop(ts) {
