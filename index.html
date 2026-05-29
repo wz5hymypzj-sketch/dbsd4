@@ -19,7 +19,7 @@
   }
 </script>
 
-<title>DAN'S BEAT SPEED DETECTOR - V30</title>
+<title>DAN'S BEAT SPEED DETECTOR - V31</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -149,8 +149,9 @@
   .guide-pane.active { display: flex; }
 
   .guide-step { border: 2px solid #000; border-radius: 6px; padding: 8px; background: #fff; }
-  .guide-step h3 { font-size: 0.85rem; color: #000; margin-bottom: 4px; text-transform: uppercase; font-weight: 900; background: #eee; padding: 4px; border-radius: 2px; }
-  .guide-step p { font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; color: #444; line-height: 1.2; }
+  .guide-step h3 { font-size: 0.85rem; color: #000; margin-bottom: 4px; text-transform: uppercase; font-weight: 900; background: #eee; padding: 4px; border-radius: 2px; text-align: center; }
+  .guide-step p { font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; color: #444; line-height: 1.2; text-align: center; }
+  .tuning-target { font-weight: 900; color: #d00000; text-align: center; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
   
   #gPane-UP, #gPane-DOWN, #gPane-CHECK { overflow-y: hidden; justify-content: center; }
 
@@ -162,6 +163,10 @@
   
   .action-btn.logged { background: #e6ffe6; border-color: #00aa00; color: #006600; box-shadow: 0 2px 0 #00aa00; }
   .action-btn.logged:active { box-shadow: 0 0 0 #00aa00; }
+
+  .listen-btn { background: #f3e6ff; border: 1px solid #aa00ff; color: #6600cc; box-shadow: 0 2px 0 #aa00ff; }
+  .listen-btn:active { box-shadow: 0 0 0 #aa00ff; }
+  .listen-btn.active-listen { background: #aa00ff; color: #fff; box-shadow: 0 0 0 #aa00ff; transform: translateY(2px); }
 
   .guide-result { font-size: 0.75rem; font-weight: 600; padding: 6px; background: #fff; border: 1px dashed #000; text-align: center; line-height: 1.4; border-radius: 4px; }
   .guide-res-wait { background: #f4f4f4; color: #666; border: 1px dashed #999; font-style: italic; }
@@ -275,7 +280,7 @@
 
     // D B over S D (Dan's Beat Speed Detector)
     const lines = [
-      { text: 'DB', x: 124, y: 80 },  // Nudged left slightly to compensate for italic lean
+      { text: 'DB', x: 124, y: 80 }, 
       { text: 'SD', x: 124, y: 185 }
     ];
 
@@ -417,12 +422,19 @@
 
         <div class="guide-pane active" id="gPane-TEMP">
           <div class="guide-step">
-            <h3>1. Tune A4 (Concert Pitch)</h3>
+            <h3>Step 1: Set Pitch</h3>
+            <div class="tuning-target">🎯 TUNING: A4</div>
             <button class="ctrl-btn" id="btnTunerToggle" style="width:100%; margin-bottom:4px; font-size:0.8rem;">TUNER: OFF</button>
             <div class="guide-result guide-res-wait" id="tunerReadout" style="min-height: 38px; display:flex; align-items:center; justify-content:center; flex-direction:column;">--- Hz</div>
           </div>
           <div class="guide-step">
-            <h3>2. Prove A3 from A4</h3>
+            <h3>Step 2: Prove A3 Octave</h3>
+            <div class="tuning-target">🎯 TUNING: A3</div>
+            <div class="action-row">
+              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_42')">LISTEN A3 (4:2)</button>
+              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_63')">LISTEN A3 (6:3)</button>
+              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_21')">LISTEN A3 (2:1)</button>
+            </div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="M3" data-label="F3 (M3)" onclick="handleAction(this, 53, 'M3')">F3 (M3)</button>
               <button class="action-btn" data-midi="53" data-iv="M10" data-label="F3 (M10)" onclick="handleAction(this, 53, 'M10')">F3 (M10)</button>
@@ -430,13 +442,18 @@
             <div class="guide-result guide-res-wait" id="guideRes2">Awaiting logs...</div>
           </div>
           <div class="guide-step">
-            <h3>3. Set F3 Anchor</h3>
+            <h3>Step 3: Set F3 Anchor</h3>
+            <div class="tuning-target">🎯 TUNING: F3</div>
             <p>Aim for ~6.93 bps.</p>
             <div class="action-row"><button class="action-btn" data-midi="53" data-iv="M3" data-label="F3 (M3)" onclick="handleAction(this, 53, 'M3')">F3 (M3)</button></div>
             <div class="guide-result guide-res-wait" id="guideRes3">Awaiting logs...</div>
           </div>
           <div class="guide-step">
-            <h3>4. Prove F3-F4 Octave</h3>
+            <h3>Step 4: Prove F4 Octave</h3>
+            <div class="tuning-target">🎯 TUNING: F4</div>
+            <div class="action-row">
+              <button class="action-btn listen-btn" onclick="handleListen(this, 53, 'OCT_42')">LISTEN F4 (4:2)</button>
+            </div>
             <div class="action-row">
               <button class="action-btn" data-midi="49" data-iv="M3" data-label="C#3 (M3)" onclick="handleAction(this, 49, 'M3')">C#3 (M3)</button>
               <button class="action-btn" data-midi="49" data-iv="M10" data-label="C#3 (M10)" onclick="handleAction(this, 49, 'M10')">C#3 (M10)</button>
@@ -444,7 +461,8 @@
             <div class="guide-result guide-res-wait" id="guideRes4">Awaiting logs...</div>
           </div>
           <div class="guide-step">
-            <h3>5. The 'F' Skeleton (Contiguous 3rds)</h3>
+            <h3>Step 5: 'F' Skeleton (Contiguous 3rds)</h3>
+            <div class="tuning-target">🎯 TUNING: C#4</div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="M3" data-label="F3 (M3)" onclick="handleAction(this, 53, 'M3')">F3 (M3)</button>
               <button class="action-btn" data-midi="57" data-iv="M3" data-label="A3 (M3)" onclick="handleAction(this, 57, 'M3')">A3 (M3)</button>
@@ -453,7 +471,8 @@
             <div class="guide-result guide-res-wait" id="guideRes5">Awaiting logs...</div>
           </div>
           <div class="guide-step">
-            <h3>6. The 'F#' Skeleton</h3>
+            <h3>Step 6: 'F#' Skeleton</h3>
+            <div class="tuning-target">🎯 TUNING: A#3 (and F#3)</div>
             <div class="action-row">
               <button class="action-btn" data-midi="54" data-iv="P5" data-label="F#3 (P5)" onclick="handleAction(this, 54, 'P5')">F#3 (P5)</button>
               <button class="action-btn" data-midi="53" data-iv="P4" data-label="F3 (P4)" onclick="handleAction(this, 53, 'P4')">F3 (P4)</button>
@@ -464,7 +483,8 @@
             <div class="guide-result guide-res-wait" id="guideRes6">Awaiting M3 and P4/P5 checks...</div>
           </div>
           <div class="guide-step">
-            <h3>7. The 'G' Skeleton</h3>
+            <h3>Step 7: 'G' Skeleton</h3>
+            <div class="tuning-target">🎯 TUNING: B3 (and G3)</div>
             <div class="action-row">
               <button class="action-btn" data-midi="55" data-iv="P5" data-label="G3 (P5)" onclick="handleAction(this, 55, 'P5')">G3 (P5)</button>
               <button class="action-btn" data-midi="54" data-iv="P4" data-label="F#3 (P4)" onclick="handleAction(this, 54, 'P4')">F#3 (P4)</button>
@@ -475,7 +495,8 @@
             <div class="guide-result guide-res-wait" id="guideRes7">Awaiting M3 and P4/P5 checks...</div>
           </div>
           <div class="guide-step">
-            <h3>8. The 'G#' Skeleton</h3>
+            <h3>Step 8: 'G#' Skeleton</h3>
+            <div class="tuning-target">🎯 TUNING: C4 (and G#3)</div>
             <div class="action-row">
               <button class="action-btn" data-midi="56" data-iv="P5" data-label="G#3 (P5)" onclick="handleAction(this, 56, 'P5')">G#3 (P5)</button>
               <button class="action-btn" data-midi="55" data-iv="P4" data-label="G3 (P4)" onclick="handleAction(this, 55, 'P4')">G3 (P4)</button>
@@ -486,7 +507,8 @@
             <div class="guide-result guide-res-wait" id="guideRes8">Awaiting M3 and P4/P5 checks...</div>
           </div>
           <div class="guide-step">
-            <h3>9. Inside 4ths & 5ths Verification</h3>
+            <h3>Step 9: P4/P5 Verification</h3>
+            <div class="tuning-target">🎯 VERIFYING OVERLAPS</div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="P5" data-label="F3 (P5)" onclick="handleAction(this, 53, 'P5')">F3 (P5)</button>
               <button class="action-btn" data-midi="60" data-iv="P4" data-label="C4 (P4)" onclick="handleAction(this, 60, 'P4')">C4 (P4)</button>
@@ -496,7 +518,8 @@
             <div class="guide-result guide-res-wait" id="guideRes9">Awaiting logs...</div>
           </div>
           <div class="guide-step">
-            <h3>10. Chromatic M3 Sweep</h3>
+            <h3>Step 10: Chromatic M3 Sweep</h3>
+            <div class="tuning-target">🎯 TARGETING REFINEMENTS</div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="M3" data-label="F3" onclick="handleAction(this, 53, 'M3')">F3</button>
               <button class="action-btn" data-midi="54" data-iv="M3" data-label="F#3" onclick="handleAction(this, 54, 'M3')">F#3</button>
@@ -522,6 +545,7 @@
               <button class="dynamic-btn" id="btnUpPlus" onclick="changeExpandNote(1, true)">+</button>
             </div>
             <p style="text-align:center;">Tune to octave below. Click buttons to verify:</p>
+            <div class="action-row" id="dynUpListenBtns"></div>
             <div class="action-row" id="dynUpBtns"></div>
             <div class="guide-result guide-res-wait" id="dynUpRes">Log intervals to analyze...</div>
           </div>
@@ -537,6 +561,7 @@
               <button class="dynamic-btn" id="btnDownPlus" onclick="changeExpandNote(1, false)">+</button>
             </div>
             <p style="text-align:center;">Tune to octave above. Click buttons to verify:</p>
+            <div class="action-row" id="dynDownListenBtns"></div>
             <div class="action-row" id="dynDownBtns"></div>
             <div class="guide-result guide-res-wait" id="dynDownRes">Log intervals to analyze...</div>
           </div>
@@ -697,12 +722,20 @@ function getConfig(lowerMidi, ivKey) {
   return { lowerMidi, upperMidi, fLo, fHi, pLo, pHi, center, theoBeat, bpLo: center - margin, bpHi: center + margin, iv, ivKey };
 }
 
+// DSP UPDATE: The Forgiveness Curve for the "Break" region (MIDI 58-65)
 function getDynamicThresholds(midiNote, ivKey) {
   let minEnv = 0.003, minSnr = 2.5;   
   if (midiNote > 60) {
     let boostFactor = Math.min(1, (midiNote - 60) / 36); 
     minEnv = 0.003 - (boostFactor * 0.0025); minSnr = 2.5 - (boostFactor * 1.5);      
   }
+  
+  // Specific leniency for the Break/Strut Region (A#3 to F4)
+  if (midiNote >= 58 && midiNote <= 65) {
+      minEnv *= 0.6;
+      minSnr *= 0.6;
+  }
+
   if (ivKey === 'P4' || ivKey === 'P5' || ivKey.includes('OCT')) { minSnr *= 0.75; minEnv *= 0.8; }
   minEnv *= 0.15; minSnr *= 0.5;  
   return { env: Math.max(0.0001, minEnv), snr: Math.max(1.0, minSnr) };
@@ -775,6 +808,10 @@ function switchGuideTab(tab) {
 
 window.setTarget = function(midi, ivKey) {
   lowerMidi = midi; 
+  
+  // Clear any existing listen-only states visually
+  document.querySelectorAll('.listen-btn').forEach(b => b.classList.remove('active-listen'));
+  
   if (ivKey.startsWith('OCT_')) {
       curIv = ivKey;
       currentOctMode = ivKey;
@@ -798,6 +835,25 @@ window.handleAction = function(btn, midi, ivKey) {
         deleteEntry(ivKey, midi);
     }
     setTarget(midi, ivKey);
+}
+
+// Handler specifically for "LISTEN ONLY" mode
+window.handleListen = function(btn, midi, ivKey) {
+    setTarget(midi, ivKey); // This sets the internal filters to the correct partial
+    
+    // Suspend Recording
+    captureState = 'LISTEN_ONLY';
+    $('captureStateLbl').textContent = 'PASS-THROUGH';
+    $('captureStateLbl').style.color = '#aa00aa';
+    
+    // Auto-enable pass-through audio if it's off
+    if (!monitorOn) {
+        $('btnPassThrough').click();
+    }
+    
+    // UI Feedback
+    document.querySelectorAll('.listen-btn').forEach(b => b.classList.remove('active-listen'));
+    btn.classList.add('active-listen');
 }
 
 // Wipe and Auto-Target for Teacher Mode
@@ -983,7 +1039,7 @@ function analyzeTemperament() {
 function getLogVal(iv, noteNameStr) { let e = loggedIntervals[iv].find(x => x.noteName === noteNameStr); return e ? e.measured : null; }
 
 function updateActionButtons() {
-  document.querySelectorAll('.action-btn').forEach(btn => {
+  document.querySelectorAll('.action-btn:not(.listen-btn)').forEach(btn => {
     let iv = btn.dataset.iv;
     let midiStr = btn.dataset.midi;
     if(!iv || !midiStr) return; 
@@ -1042,7 +1098,6 @@ function checkStep5() {
   let html = `F3&rarr;A3: +${r1.toFixed(0)}% | A3&rarr;C#4: +${r2.toFixed(0)}%<br>`;
   let target = 26, tol = 6;
   
-  // F3 and A3 are assumed locked. Strictly target the C#4 jump.
   if (Math.abs(r2 - target) <= tol) { 
       res.className = 'guide-result guide-res-pass'; html += `✔ PROPORTIONAL SPACING!`; 
   } else { 
@@ -1065,7 +1120,6 @@ function checkStep6() {
   else if(Math.abs(r1 - 26) <= 6) { res.className = 'guide-result guide-res-pass'; html += `✔ SKELETON PROPORTIONAL (+${r1.toFixed(0)}%)`; }
   else { 
       res.className = 'guide-result guide-res-warn'; 
-      // F#3 is locked by P4/P5. Target A#3.
       html += `Uneven Jump (+${r1.toFixed(0)}%). A#3 is likely ${r1 > 26 ? 'flat' : 'sharp'}.<br><button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeAndTarget(58, 'M3')">FIX A#3 (M3)</button>`; 
   }
   res.innerHTML = html;
@@ -1084,7 +1138,6 @@ function checkStep7() {
   else if(Math.abs(r1 - 26) <= 6) { res.className = 'guide-result guide-res-pass'; html += `✔ SKELETON PROPORTIONAL (+${r1.toFixed(0)}%)`; }
   else { 
       res.className = 'guide-result guide-res-warn'; 
-      // G3 is locked. Target B3.
       html += `Uneven Jump (+${r1.toFixed(0)}%). B3 is likely ${r1 > 26 ? 'flat' : 'sharp'}.<br><button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeAndTarget(59, 'M3')">FIX B3 (M3)</button>`; 
   }
   res.innerHTML = html;
@@ -1103,7 +1156,6 @@ function checkStep8() {
   else if(Math.abs(r1 - 26) <= 6) { res.className = 'guide-result guide-res-pass'; html += `✔ SKELETON PROPORTIONAL (+${r1.toFixed(0)}%)`; }
   else { 
       res.className = 'guide-result guide-res-warn'; 
-      // G#3 is locked. Target C4.
       html += `Uneven Jump (+${r1.toFixed(0)}%). C4 is likely ${r1 > 26 ? 'flat' : 'sharp'}.<br><button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeAndTarget(60, 'M3')">FIX C4 (M3)</button>`; 
   }
   res.innerHTML = html;
@@ -1162,19 +1214,40 @@ function renderDynExpanders() {
   $('btnUpMinus').disabled = (expUpMidi <= 66);
   $('btnDownPlus').disabled = (expDownMidi >= 52);
 
-  let uBtns = '';
-  let uP8 = expUpMidi - 12, uM10 = expUpMidi - 16, uM17 = expUpMidi - 28;
-  if(uP8 >= 21) uBtns += `<button class="action-btn" onclick="handleAction(this, ${uP8}, 'OCT_42')" data-midi="${uP8}" data-iv="OCT_42" data-label="${noteName(uP8)} (OCT)">${noteName(uP8)} (OCT)</button>`;
+  let lBtnsU = ''; let uBtns = '';
+  let uP8 = expUpMidi - 12, uM10 = expUpMidi - 16, uM17 = expUpMidi - 28, uDouble = expUpMidi - 24;
+  
+  if(uP8 >= 21) {
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_42')">LISTEN 4:2</button>`;
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_63')">LISTEN 6:3</button>`;
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_21')">LISTEN 2:1</button>`;
+      if(uDouble >= 21) lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uDouble}, 'OCT+2')">LISTEN OCT+2</button>`;
+      
+      uBtns += `<button class="action-btn" onclick="handleAction(this, ${uP8}, 'OCT_42')" data-midi="${uP8}" data-iv="OCT_42" data-label="${noteName(uP8)} (OCT)">${noteName(uP8)} (OCT)</button>`;
+  }
   if(uM10 >= 21) uBtns += `<button class="action-btn" onclick="handleAction(this, ${uM10}, 'M10')" data-midi="${uM10}" data-iv="M10" data-label="${noteName(uM10)} (M10)">${noteName(uM10)} (M10)</button>`;
   if(uM17 >= 21) uBtns += `<button class="action-btn" onclick="handleAction(this, ${uM17}, 'M17')" data-midi="${uM17}" data-iv="M17" data-label="${noteName(uM17)} (M17)">${noteName(uM17)} (M17)</button>`;
+  
+  $('dynUpListenBtns').innerHTML = lBtnsU;
   $('dynUpBtns').innerHTML = uBtns;
 
   $('dynDownTarget').textContent = noteName(expDownMidi);
-  let dBtns = '';
-  if(expDownMidi + 12 <= 108) dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'OCT_42')" data-midi="${expDownMidi}" data-iv="OCT_42" data-label="${noteName(expDownMidi)} (OCT)">${noteName(expDownMidi)} (OCT)</button>`;
+  let lBtnsD = ''; let dBtns = '';
+  
+  if(expDownMidi + 12 <= 108) {
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_42')">LISTEN 4:2</button>`;
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_63')">LISTEN 6:3</button>`;
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_21')">LISTEN 2:1</button>`;
+      if(expDownMidi + 24 <= 108) lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT+2')">LISTEN OCT+2</button>`;
+      
+      dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'OCT_42')" data-midi="${expDownMidi}" data-iv="OCT_42" data-label="${noteName(expDownMidi)} (OCT)">${noteName(expDownMidi)} (OCT)</button>`;
+  }
   if(expDownMidi + 16 <= 108) dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'M10')" data-midi="${expDownMidi}" data-iv="M10" data-label="${noteName(expDownMidi)} (M10)">${noteName(expDownMidi)} (M10)</button>`;
   if(expDownMidi + 28 <= 108) dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'M17')" data-midi="${expDownMidi}" data-iv="M17" data-label="${noteName(expDownMidi)} (M17)">${noteName(expDownMidi)} (M17)</button>`;
+  
+  $('dynDownListenBtns').innerHTML = lBtnsD;
   $('dynDownBtns').innerHTML = dBtns;
+  
   updateDynRes();
 }
 
@@ -1327,10 +1400,25 @@ function retuneFilters(cfg) {
 
 function renderLoop(ts) {
   if (!isRunning) return; rafId = requestAnimationFrame(renderLoop); if (micPaused) return;
+  
+  if (captureState === 'LISTEN_ONLY') {
+      $('captureStateLbl').textContent = 'LISTENING...'; 
+      $('captureStateLbl').style.color = '#aa00aa';
+      // Flash the signal light based on generic volume just for visual feedback
+      const snr = envelopeRunning / noiseFloor;
+      if (snr > 1.5 && envelopeRunning > 0.0005) sigLight.style.background = '#aa00aa'; 
+      else sigLight.style.background = '#e0e0e0';
+      return; // Suspend all auto-logging logic
+  }
+
   const cfg = getConfig(lowerMidi, curIv); const snr = envelopeRunning / noiseFloor; const threshold = getDynamicThresholds(lowerMidi, curIv);
   if (snr > threshold.snr && envelopeRunning > threshold.env) { sigLight.style.background = '#00ff00'; } else { sigLight.style.background = '#e0e0e0'; }
-  let now = performance.now(); const fps = audioCtx.sampleRate / currentChunkSize; const minHistFrames = Math.round(fps * 0.4);
+  let now = performance.now(); const fps = audioCtx.sampleRate / currentChunkSize; 
   
+  // DSP UPDATE: Faster lock for Break Region
+  let minHistFrames = Math.round(fps * 0.4);
+  if (lowerMidi >= 58 && lowerMidi <= 65) { minHistFrames = Math.round(fps * 0.25); }
+
   if (captureState === 'WAIT' && now - captureStartTime > 800) { captureState = 'CAPTURING'; $('captureStateLbl').textContent = 'RECORDING...'; $('captureStateLbl').style.color = '#d00000'; }
   if (captureState === 'CAPTURING') {
       if (envHistory.length >= minHistFrames && snr > threshold.snr && envelopeRunning > threshold.env) { let beat = detectBeat(envHistory, cfg.theoBeat, curIv); if (beat !== null) capturedBeats.push(beat); }
@@ -1366,6 +1454,9 @@ function detectBeat(history, theoreticalBeat, ivKey) {
   const peaks = []; 
   let acThreshold = theoreticalBeat > 10.0 ? 0.015 : 0.03; 
   if (ivKey === 'P4' || ivKey === 'P5' || ivKey.includes('OCT')) acThreshold = 0.01; 
+  
+  // DSP UPDATE: Relax Autocorrelation strictness in Break Region
+  if (lowerMidi >= 58 && lowerMidi <= 65) { acThreshold *= 0.6; }
   
   for (let lag = minLag + 1; lag < maxLag; lag++) { 
       if (ac[lag] > ac[lag - 1] && ac[lag] > ac[lag + 1] && ac[lag] > acThreshold) peaks.push({ lag, ac: ac[lag] }); 
