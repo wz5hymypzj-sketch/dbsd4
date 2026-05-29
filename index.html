@@ -134,7 +134,7 @@
   
   .workspace { flex: 1; min-height: 0; overflow: hidden; border: 1px solid #000; border-radius: 4px 4px 0 0; border-bottom: none; background: #ffffff; display: flex; flex-direction: column; }
   
-  #logContainer, #ihContainer { flex: 1; min-height: 0; width: 100%; overflow-y: auto; }
+  #logContainer { flex: 1; min-height: 0; width: 100%; overflow-y: auto; }
   #guideContainer { flex: 1; min-height: 0; width: 100%; overflow: hidden; display: none; flex-direction: column; }
   
   .guide-pane { flex: 1; min-height: 0; display: none; padding: 8px; flex-direction: column; gap: 8px; background: #f9f9f9; overflow-y: auto; }
@@ -291,7 +291,6 @@
       <div class="controls-row">
         <button class="mode-btn active" id="btnModeDet" onclick="switchMainMode('DET')">LOGS</button>
         <button class="mode-btn" id="btnModeGuide" onclick="switchMainMode('GUIDE')">GUIDE</button>
-        <button class="mode-btn" id="btnModeIH" onclick="switchMainMode('IH')">iH</button>
         <button class="mode-btn active" id="btnPause">MIC: ON</button>
         <button class="mode-btn" id="btnPassThrough">PASS: OFF</button>
       </div>
@@ -349,22 +348,6 @@
           <tbody id="logBody"><tr><td colspan="6" style="text-align:center; padding:15px; color:#666;">Logs automatically upon solid capture</td></tr></tbody>
         </table>
         <div id="analysisBox" style="display: none;"></div>
-      </div>
-
-      <div id="ihContainer" style="display: none;">
-        <div style="padding: 8px;">
-            <h3 style="font-size: 0.85rem; text-transform: uppercase; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 4px;">Inharmonicity Profiler</h3>
-            <p style="font-size: 0.75rem; margin-bottom: 12px; color: #555;">Measure reference notes across the keyboard to map this piano's specific stiffness (iH). This data will eventually generate a custom stretch curve.</p>
-            <div class="action-row" style="justify-content: flex-start; gap: 8px;" id="ihBtns">
-                <button class="action-btn" onclick="sampleIH(24)" id="ihBtn-24">C1</button>
-                <button class="action-btn" onclick="sampleIH(36)" id="ihBtn-36">C2</button>
-                <button class="action-btn" onclick="sampleIH(48)" id="ihBtn-48">C3</button>
-                <button class="action-btn" onclick="sampleIH(60)" id="ihBtn-60">C4</button>
-                <button class="action-btn" onclick="sampleIH(72)" id="ihBtn-72">C5</button>
-                <button class="action-btn" onclick="sampleIH(84)" id="ihBtn-84">C6</button>
-            </div>
-            <div class="guide-result guide-res-wait" id="ihResult" style="margin-top: 12px;">Select a note to sample its pitch...</div>
-        </div>
       </div>
 
       <div id="guideContainer">
@@ -756,7 +739,6 @@ function switchMainMode(mode) {
   });
   $('logContainer').style.display = 'none';
   $('guideContainer').style.display = 'none';
-  $('ihContainer').style.display = 'none';
 
   if (mode === 'DET') {
     $('btnModeDet').classList.add('active');
@@ -765,9 +747,6 @@ function switchMainMode(mode) {
     $('btnModeGuide').classList.add('active');
     $('guideContainer').style.display = 'flex';
     updateGuide(); renderDynExpanders(); renderSweep();
-  } else if (mode === 'IH') {
-    $('btnModeIH').classList.add('active');
-    $('ihContainer').style.display = 'block';
   }
 }
 
@@ -836,28 +815,6 @@ window.wipeCluster = function(targetMidi, targetIv, wipeArray) {
     });
     savePersistence(); renderLogTable(); updateGuide(); updateDynRes();
     setTarget(targetMidi, targetIv);
-}
-
-window.sampleIH = function(midi) {
-    $('ihResult').className = 'guide-result guide-res-wait';
-    $('ihResult').innerHTML = `Listening to ${noteName(midi)}...<br>Play strongly and let it ring.`;
-    
-    if(tunerFilter) tunerFilter.frequency.value = freq(midi); 
-    
-    if(!tunerActive) $('btnTunerToggle').click(); 
-    
-    setTimeout(() => {
-        if(smoothedPitch > 0) {
-            let cents = 1200 * Math.log2(smoothedPitch / freq(midi));
-            $('ihResult').className = 'guide-result guide-res-pass';
-            $('ihResult').innerHTML = `<b>${noteName(midi)} logged!</b><br>${smoothedPitch.toFixed(2)} Hz (${cents > 0 ? '+':''}${cents.toFixed(1)}c)`;
-            $('ihBtn-'+midi).classList.add('logged');
-        } else {
-            $('ihResult').className = 'guide-result guide-res-warn';
-            $('ihResult').innerHTML = `Could not lock pitch for ${noteName(midi)}.<br>Try again.`;
-        }
-        if(tunerFilter) tunerFilter.frequency.value = 440.0;
-    }, 2500); 
 }
 
 $('btnPause').onclick = async () => {
@@ -973,17 +930,15 @@ function renderLogTable() {
   if (entries.length > 0) {
     entries.sort((a, b) => a.midi - b.midi);
     for (let i = 0; i < entries.length; i++) {
-      entries[i].pctStr = '-'; entries[i].isWrong = false; entries[i].isWarn = false;
+      entries[i].pctStr = '-'; entries[i].isWrong = false;
       if (i > 0) {
         const pct = ((entries[i].measured - entries[i-1].measured) / entries[i-1].measured) * 100;
         entries[i].pctStr = (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
         
-        // Traffic Light Logic: Only warn/error on purely consecutive semitone jumps
+        // Traffic Light Logic: Only RED (Error) on purely consecutive semitone jumps
         if (entries[i].midi === entries[i-1].midi + 1) {
             if (pct <= 0) {
                 entries[i].isWrong = true; // RED (Dip)
-            } else if (pct < 3 || pct > 9) {
-                entries[i].isWarn = true; // YELLOW (Flatline or Spike)
             }
         }
       }
@@ -991,8 +946,7 @@ function renderLogTable() {
     tb.innerHTML += `<tr style="background:#f4f4f4; border-bottom:1px solid #000;"><td colspan="6" style="text-align:center; font-weight:800; font-size:0.8rem; padding:4px;">${curIv} PROGRESSION</td></tr>`;
     for (let i = entries.length - 1; i >= 0; i--) {
       const c = entries[i];
-      const rowStyle = c.isWrong ? 'background-color: #ffeaea; color: #d00000; font-weight: 700;' : 
-                       (c.isWarn ? 'background-color: #fff8cc; color: #b38000; font-weight: 700;' : '');
+      const rowStyle = c.isWrong ? 'background-color: #ffeaea; color: #d00000; font-weight: 700;' : '';
       const strikeCountStr = c.strikes.length > 1 ? ` <span style="font-size:0.6rem; color:#666;">(${c.strikes.length}x)</span>` : '';
       tb.innerHTML += `<tr style="${rowStyle}"><td><b>${curIv}</b></td><td style="font-weight:800;">${c.noteName}</td><td style="font-weight:700; font-size:0.85rem;">${c.measured.toFixed(2)}${strikeCountStr}</td><td style="font-weight:700;">${c.pctStr}</td><td class="w">~${c.target.toFixed(2)}</td><td><button class="btn-del" onclick="deleteEntry('${curIv}', ${c.midi})">X</button></td></tr>`;
     }
@@ -1714,17 +1668,17 @@ function renderLoop(ts) {
           }
       }
       
-      let strictTimer, minBeatsRequired;
-      if (cfg.theoBeat > 6.0) { strictTimer = 1500; minBeatsRequired = 5; }
-      else if (cfg.theoBeat >= 3.0) { strictTimer = 3000; minBeatsRequired = 4; }
-      else { strictTimer = 4500; minBeatsRequired = 3; }
+      let strictTimer;
+      if (cfg.theoBeat > 6.0) { strictTimer = 1500; }
+      else if (cfg.theoBeat >= 3.0) { strictTimer = 3000; }
+      else { strictTimer = 4500; }
 
       let timeElapsed = now - captureStartTime;
       let isTimerUp = timeElapsed > strictTimer;
       let isSignalDead = snr < threshold.snr * 0.4; 
 
       if (isTimerUp || (timeElapsed > 1500 && isSignalDead)) {
-          if (capturedBeats.length >= minBeatsRequired) {
+          if (capturedBeats.length >= 3) {
               capturedBeats.sort((a,b) => a-b); 
               let median = capturedBeats[Math.floor(capturedBeats.length/2)];
               let stableCount = capturedBeats.filter(b => Math.abs(b - median) <= 0.6).length;
