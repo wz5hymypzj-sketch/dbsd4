@@ -986,8 +986,8 @@ function checkStep2() {
   let m3 = getLogVal('M3', 'F3'), m10 = getLogVal('M10', 'F3'); let res = $('guideRes2');
   if(!m3 || !m10) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Awaiting logs..."; return; }
   let diff = m10 - m3; let html = `M3: ${m3.toFixed(2)} | M10: ${m10.toFixed(2)}<br>`;
-  if(diff >= -0.1 && diff <= 0.6) { res.className = 'guide-result guide-res-pass'; html += `✔ Solid 4:2 Octave!`; }
-  else if (diff > 0.6) { res.className = 'guide-result guide-res-warn'; html += `Octave too wide. A4 is locked. Adjust A3 (SHARPEN).`; }
+  if(diff >= -0.2 && diff <= 0.3) { res.className = 'guide-result guide-res-pass'; html += `✔ Solid 4:2 Octave!`; }
+  else if (diff > 0.3) { res.className = 'guide-result guide-res-warn'; html += `Octave too wide. A4 is locked. Adjust A3 (SHARPEN).`; }
   else { res.className = 'guide-result guide-res-warn'; html += `Octave too narrow. A4 is locked. Adjust A3 (FLATTEN).`; }
   res.innerHTML = html;
 }
@@ -1008,8 +1008,8 @@ function checkStep4() {
   let m3 = getLogVal('M3', 'C#3'), m10 = getLogVal('M10', 'C#3'); let res = $('guideRes4');
   if(!m3 || !m10) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Awaiting logs..."; return; }
   let diff = m10 - m3; let html = `M3: ${m3.toFixed(2)} | M10: ${m10.toFixed(2)}<br>`;
-  if(diff >= -0.1 && diff <= 0.6) { res.className = 'guide-result guide-res-pass'; html += `✔ Solid 4:2 Octave!`; }
-  else if (diff > 0.6) { res.className = 'guide-result guide-res-warn'; html += `Octave too wide. F3 is locked. Adjust F4 (FLATTEN).`; }
+  if(diff >= -0.2 && diff <= 0.3) { res.className = 'guide-result guide-res-pass'; html += `✔ Solid 4:2 Octave!`; }
+  else if (diff > 0.3) { res.className = 'guide-result guide-res-warn'; html += `Octave too wide. F3 is locked. Adjust F4 (FLATTEN).`; }
   else { res.className = 'guide-result guide-res-warn'; html += `Octave too narrow. F3 is locked. Adjust F4 (SHARPEN).`; }
   res.innerHTML = html;
 }
@@ -1581,11 +1581,11 @@ function renderLoop(ts) {
       }
       
       let confidentLock = false;
-      if (capturedBeats.length >= 5) {
+      if (capturedBeats.length >= 8) {
           let sortedTemp = [...capturedBeats].sort((a, b) => a - b);
           let tempMedian = sortedTemp[Math.floor(sortedTemp.length / 2)];
-          let stableCount = capturedBeats.filter(b => Math.abs(b - tempMedian) < 0.6).length;
-          if (stableCount >= 5 && (stableCount / capturedBeats.length) >= 0.75) {
+          let stableCount = capturedBeats.filter(b => Math.abs(b - tempMedian) < 0.4).length;
+          if (stableCount >= 8 && (stableCount / capturedBeats.length) >= 0.75) {
               confidentLock = true;
           }
       }
@@ -1595,7 +1595,7 @@ function renderLoop(ts) {
       if (confidentLock || now - captureStartTime > maxWaitTime || snr < threshold.snr * 0.8) {
           if (capturedBeats.length > 3) {
               capturedBeats.sort((a,b) => a-b); let median = capturedBeats[Math.floor(capturedBeats.length/2)];
-              let stableCount = capturedBeats.filter(b => Math.abs(b - median) < 0.6).length;
+              let stableCount = capturedBeats.filter(b => Math.abs(b - median) < 0.4).length;
               if (stableCount / capturedBeats.length >= 0.6 || median === 0.0) {
                   lockedAverage = median; avgEl.textContent = lockedAverage.toFixed(2);
                   $('captureStateLbl').textContent = 'LOCKED!'; $('captureStateLbl').style.color = '#00aa00'; captureState = 'LOCKED'; finalizeLog(); 
