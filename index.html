@@ -19,7 +19,7 @@
   }
 </script>
 
-<title>DAN'S BEAT SPEED DETECTOR - V33</title>
+<title>DAN'S BEAT SPEED DETECTOR - V34</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -725,7 +725,6 @@ function getConfig(lowerMidi, ivKey) {
   return { lowerMidi, upperMidi, fLo, fHi, pLo, pHi, center, theoBeat, bpLo: center - margin, bpHi: center + margin, iv, ivKey };
 }
 
-// DSP UPDATE: Unified Envelope thresholds & Stratified forgiveness
 function getDynamicThresholds(midiNote, ivKey) {
   let minEnv = 0.002, minSnr = 2.0;   
   if (midiNote > 60) {
@@ -733,7 +732,6 @@ function getDynamicThresholds(midiNote, ivKey) {
     minEnv = 0.002 - (boostFactor * 0.0015); minSnr = 2.0 - (boostFactor * 1.0);      
   }
   
-  // Specific leniency for the Break/Strut Region & Treble
   if (midiNote >= 58) {
       minEnv *= 0.5;
       minSnr *= 0.5;
@@ -745,8 +743,9 @@ function getDynamicThresholds(midiNote, ivKey) {
 
 let curIv = 'M3', lowerMidi = 53, rollBaseMidi = 53; 
 let currentOctMode = 'OCT_42';
+// DSP UPDATE: Unified Chunk Size to 512. Fixes aliasing by running at ~86 FPS.
 let audioCtx = null, analyserFull = null, analyserTuner = null, filters = [], tunerFilter = null, gainNode = null, monitorGain = null;
-let isRunning = false, micPaused = false, monitorOn = false, rafId = null, currentChunkSize = 1024; // UNIFIED CHUNK SIZE
+let isRunning = false, micPaused = false, monitorOn = false, rafId = null, currentChunkSize = 512; 
 let micStream = null, scriptNode = null; 
 let noiseFloor = 0.001, envelopeRunning = 0, lastEnvelope = 0, envHistory = [];    
 let transientSamplesLeft = 0, lastAttackTime = 0;
@@ -811,7 +810,6 @@ function switchGuideTab(tab) {
 window.setTarget = function(midi, ivKey) {
   lowerMidi = midi; 
   
-  // Clear any existing listen-only states visually
   document.querySelectorAll('.listen-btn').forEach(b => b.classList.remove('active-listen'));
   
   if (ivKey.startsWith('OCT_')) {
@@ -831,7 +829,6 @@ window.setTarget = function(midi, ivKey) {
   enforceReblitzLimits(); resetCapture(); buildPianoRoll(); renderLogTable();
 }
 
-// Click to re-record handler for the Guide action buttons
 window.handleAction = function(btn, midi, ivKey) {
     if (btn.classList.contains('logged')) {
         deleteEntry(ivKey, midi);
@@ -839,26 +836,21 @@ window.handleAction = function(btn, midi, ivKey) {
     setTarget(midi, ivKey);
 }
 
-// Handler specifically for "LISTEN ONLY" mode
 window.handleListen = function(btn, midi, ivKey) {
-    setTarget(midi, ivKey); // This sets the internal filters to the correct partial
+    setTarget(midi, ivKey); 
     
-    // Suspend Recording
     captureState = 'LISTEN_ONLY';
     $('captureStateLbl').textContent = 'LISTENING';
-    $('captureStateLbl').style.color = '#0066ff'; // Standard blue
+    $('captureStateLbl').style.color = '#0066ff';
     
-    // Auto-enable pass-through audio if it's off
     if (!monitorOn) {
         $('btnPassThrough').click();
     }
     
-    // UI Feedback
     document.querySelectorAll('.listen-btn').forEach(b => b.classList.remove('active-listen'));
     btn.classList.add('active-listen');
 }
 
-// Wipe and Auto-Target for Teacher Mode
 window.wipeAndTarget = function(midi, ivKey) {
     deleteEntry(ivKey, midi);
     setTarget(midi, ivKey);
@@ -886,7 +878,6 @@ window.sampleIH = function(midi) {
     }, 2500); 
 }
 
-// Toggling Pause now acts as a Hard Reset if Audio Context is dead
 $('btnPause').onclick = async () => {
   micPaused = !micPaused;
   if (micPaused) {
@@ -899,7 +890,7 @@ $('btnPause').onclick = async () => {
     resetCapture(); 
     const tracksLost = !micStream || micStream.getTracks().every(t => t.readyState === 'ended');
     if (tracksLost || !audioCtx || audioCtx.state === 'closed') {
-        await startAudioEngine(); // Full audio rebuild
+        await startAudioEngine(); 
     } else {
         if(audioCtx.state === 'suspended') await audioCtx.resume(); 
     }
@@ -951,7 +942,7 @@ function buildPianoRoll() {
     key.className = 'pk' + (isSharp ? ' sh' : ''); key.dataset.midi = m;
     if (m >= ivDef.min && m <= ivDef.max) {
       key.textContent = noteName(m);
-      key.addEventListener('click', () => { lowerMidi = m; currentChunkSize = 1024; resetCapture(); refreshUI(); });
+      key.addEventListener('click', () => { lowerMidi = m; currentChunkSize = 512; resetCapture(); refreshUI(); });
     } else { key.classList.add('disabled'); if (!isSharp) key.textContent = noteName(m); }
     roll.appendChild(key);
   }
@@ -973,8 +964,8 @@ function refreshUI() {
 
 $('octDown').addEventListener('click', () => { if (rollBaseMidi > 12) { rollBaseMidi -= 12; buildPianoRoll(); } });
 $('octUp').addEventListener('click', () => { if (rollBaseMidi < 108) { rollBaseMidi += 12; buildPianoRoll(); } });
-$('btnBigDown').addEventListener('click', () => { if (!isRunning || lowerMidi <= IV[curIv].min) return; lowerMidi--; updateRollBounds(); currentChunkSize = 1024; resetCapture(); buildPianoRoll(); });
-$('btnBigUp').addEventListener('click', () => { if (!isRunning || lowerMidi >= IV[curIv].max) return; lowerMidi++; updateRollBounds(); currentChunkSize = 1024; resetCapture(); buildPianoRoll(); });
+$('btnBigDown').addEventListener('click', () => { if (!isRunning || lowerMidi <= IV[curIv].min) return; lowerMidi--; updateRollBounds(); currentChunkSize = 512; resetCapture(); buildPianoRoll(); });
+$('btnBigUp').addEventListener('click', () => { if (!isRunning || lowerMidi >= IV[curIv].max) return; lowerMidi++; updateRollBounds(); currentChunkSize = 512; resetCapture(); buildPianoRoll(); });
 window.addEventListener('keydown', (e) => { if (!isRunning) return; if (e.key === 'ArrowRight') { e.preventDefault(); $('btnBigUp').click(); } else if (e.key === 'ArrowLeft') { e.preventDefault(); $('btnBigDown').click(); } });
 
 function finalizeLog() {
@@ -1356,10 +1347,45 @@ function runTuner() {
 
 $('bigStartBtn').addEventListener('click', async () => {
   $('startOverlay').style.display = 'none';
-  await startAudioEngine();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    micStream = stream;
+    const constraints = await getBuiltInMicConstraints();
+    if (constraints.deviceId) {
+      stream.getTracks().forEach(t => t.stop());
+      const betterStream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+      micStream = betterStream;
+    }
+    const activeStream = micStream;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    const src = audioCtx.createMediaStreamSource(activeStream);
+    analyserFull = audioCtx.createAnalyser(); analyserFull.fftSize = 4096; analyserFull.smoothingTimeConstant = 0.7;
+    
+    tunerFilter = audioCtx.createBiquadFilter(); 
+    tunerFilter.type = 'bandpass'; 
+    tunerFilter.frequency.value = 440.0; 
+    tunerFilter.Q.value = 3.0; 
+    
+    analyserTuner = audioCtx.createAnalyser(); 
+    analyserTuner.fftSize = 4096;
+    src.connect(tunerFilter); tunerFilter.connect(analyserTuner);
+
+    const cfg = getConfig(lowerMidi, curIv); filters = buildFilters(cfg);
+    gainNode = audioCtx.createGain(); gainNode.gain.value = 250.0; 
+    monitorGain = audioCtx.createGain(); monitorGain.gain.value = monitorOn && !micPaused ? 25.0 : 0.0;
+    scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
+
+    src.connect(analyserFull); src.connect(filters[0]); filters[0].connect(filters[1]);
+    filters[1].connect(gainNode); filters[1].connect(monitorGain); monitorGain.connect(audioCtx.destination);
+    gainNode.connect(scriptNode); scriptNode.connect(audioCtx.destination);
+
+    scriptNode.onaudioprocess = buildAudioProcessor();
+    isRunning = true; lastEnvelope = 0; rafId = requestAnimationFrame(renderLoop);
+  } catch(e) { alert('Microphone setup failed:\n' + e.message); $('startOverlay').style.display = 'flex'; }
 });
 
-let smoothedEnvelope = 0; // The new low-pass volume tracker
+let smoothedEnvelope = 0; 
 
 function buildAudioProcessor() {
   return (e) => {
@@ -1370,8 +1396,8 @@ function buildAudioProcessor() {
       for (let i = 0; i < limit; i++) sum += inputData[offset + i] * inputData[offset + i];
       const rms = Math.sqrt(sum / limit); 
       
-      // DSP UPDATE: Low-pass Envelope filter to kill transient noise/false chatter
-      smoothedEnvelope = (smoothedEnvelope * 0.4) + (rms * 0.6);
+      // DSP UPDATE: Adapted Exponential Moving Average for 86 fps to keep it smooth
+      smoothedEnvelope = (smoothedEnvelope * 0.7) + (rms * 0.3);
       envelopeRunning = smoothedEnvelope;
       
       const strikeMult = 2.0; 
@@ -1384,23 +1410,26 @@ function buildAudioProcessor() {
       if (isStrike && snr > 2.5) {
         const timeNow = performance.now();
         if (timeNow - lastAttackTime > 400 && (captureState === 'IDLE' || captureState === 'LOCKED')) {
-          envHistory = []; lastAttackTime = timeNow; transientSamplesLeft = 12; // Wait a fraction longer before collecting cleanly
+          envHistory = []; lastAttackTime = timeNow; transientSamplesLeft = 12; 
           captureState = 'WAIT'; captureStartTime = timeNow; capturedBeats = [];
           $('captureStateLbl').textContent = 'WAITING...'; $('captureStateLbl').style.color = '#ff9900';
         }
       }
       if (transientSamplesLeft > 0) { transientSamplesLeft--; }
-      else { envHistory.push({ val: envelopeRunning }); const fps = audioCtx.sampleRate / currentChunkSize; if (envHistory.length > Math.round(3.5 * fps)) envHistory.shift(); }
+      else { 
+          envHistory.push({ val: envelopeRunning }); 
+          const fps = audioCtx.sampleRate / currentChunkSize; 
+          // DSP UPDATE: Expand memory buffer dynamically up to 4.5 seconds for messy notes
+          if (envHistory.length > Math.round(4.5 * fps)) envHistory.shift(); 
+      }
     }
   };
 }
 
 function buildFilters(cfg) {
-  // DSP UPDATE: Widen the filter mathematically by reducing the multiplier
   const Q = (cfg.center / (cfg.bpHi - cfg.bpLo)) * 0.75;
   const f1 = audioCtx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = cfg.center; f1.Q.value = Q;
   const f2 = audioCtx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = cfg.center; f2.Q.value = Q;
-  // Reduced from 3 to 2 cascades to prevent tight ringing
   return [f1, f2];
 }
 
@@ -1427,13 +1456,18 @@ function renderLoop(ts) {
   if (snr > threshold.snr && envelopeRunning > threshold.env) { sigLight.style.background = '#00ff00'; } else { sigLight.style.background = '#e0e0e0'; }
   let now = performance.now(); const fps = audioCtx.sampleRate / currentChunkSize; 
   
-  let minHistFrames = Math.round(fps * 0.4);
-  if (lowerMidi >= 58) { minHistFrames = Math.round(fps * 0.25); }
+  // Dynamic Start Time: 0.5s for all to gather a solid baseline
+  let minHistFrames = Math.round(fps * 0.5);
 
   if (captureState === 'WAIT' && now - captureStartTime > 800) { captureState = 'CAPTURING'; $('captureStateLbl').textContent = 'RECORDING...'; $('captureStateLbl').style.color = '#d00000'; }
   if (captureState === 'CAPTURING') {
       if (envHistory.length >= minHistFrames && snr > threshold.snr && envelopeRunning > threshold.env) { let beat = detectBeat(envHistory, cfg.theoBeat, curIv); if (beat !== null) capturedBeats.push(beat); }
-      if (now - captureStartTime > 3300 || snr < threshold.snr * 0.8) {
+      
+      // DSP UPDATE: Dynamic expanding timeout window. Clean notes can lock fast. 
+      // Messy notes (treble/break) are given up to 4.5 seconds to reveal their beat.
+      let maxWaitTime = lowerMidi >= 58 ? 4500 : 3300;
+      
+      if (now - captureStartTime > maxWaitTime || snr < threshold.snr * 0.8) {
           if (capturedBeats.length > 5) {
               capturedBeats.sort((a,b) => a-b); let median = capturedBeats[Math.floor(capturedBeats.length/2)];
               let stableCount = capturedBeats.filter(b => Math.abs(b - median) < 0.6).length;
@@ -1460,11 +1494,11 @@ function detectBeat(history, theoreticalBeat, ivKey) {
 
   if (ac0 < 1e-12) return null;
 
+  // DSP UPDATE: With 86 fps, we can safely detect up to ~43 bps without aliasing.
   const minLag = Math.max(2, Math.round(fps / 55)), maxLag = Math.min(N - 2, Math.round(fps / 0.5)); 
   const ac = new Float32Array(maxLag + 1); for (let lag = minLag; lag <= maxLag; lag++) { let sum = 0; for (let i = 0; i < N - lag; i++) sum += AC[i] * AC[i + lag]; ac[lag] = sum / ac0; }
   const peaks = []; 
   
-  // DSP UPDATE: Adjust threshold for the newly smoothed envelope
   let acThreshold = theoreticalBeat > 10.0 ? 0.01 : 0.02; 
   if (ivKey === 'P4' || ivKey === 'P5' || ivKey.includes('OCT')) acThreshold = 0.005; 
   if (lowerMidi >= 58) { acThreshold *= 0.5; } 
@@ -1486,7 +1520,7 @@ function detectBeat(history, theoreticalBeat, ivKey) {
     if (ivKey.includes('OCT') || ivKey === 'P12' || ivKey === 'P15' || ivKey === 'OCT+2') allowedDev = 4.0; 
     if (Math.abs(rate - theoreticalBeat) > allowedDev) return; 
     let ratio = rate / theoreticalBeat; let distanceDev = theoreticalBeat === 0 ? 0 : Math.abs(Math.log2(ratio)); let proximityWeight = theoreticalBeat === 0 ? 1.0 : Math.exp(-0.5 * Math.pow(distanceDev / 0.8, 2));
-    if (rate < 0.15 || rate > 35.0) proximityWeight = 0.0; let score = p.ac * proximityWeight; if (score > maxScore) { maxScore = score; bestCandidate = rate; }
+    if (rate < 0.15 || rate > 43.0) proximityWeight = 0.0; let score = p.ac * proximityWeight; if (score > maxScore) { maxScore = score; bestCandidate = rate; }
   }); 
   
   if (maxScore > 0 && maxScore <= 0.005 && ivKey.includes('OCT')) { return 0.0; }
