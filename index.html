@@ -1669,45 +1669,29 @@ function renderLoop(ts) {
           }
       }
       
-      let N, tol, normalTimer;
-      if (cfg.theoBeat > 6.0) { N = 8; tol = 0.2; normalTimer = 2500; }
-      else if (cfg.theoBeat >= 3.0) { N = 6; tol = 0.15; normalTimer = 4000; }
-      else { N = 5; tol = 0.1; normalTimer = 5500; }
+      let strictTimer, minBeatsRequired;
+      if (cfg.theoBeat > 6.0) { strictTimer = 2500; minBeatsRequired = 6; }
+      else if (cfg.theoBeat >= 3.0) { strictTimer = 4000; minBeatsRequired = 4; }
+      else { strictTimer = 5500; minBeatsRequired = 3; }
 
-      let confidentLock = false;
-      if (capturedBeats.length >= N) {
-          let recent = capturedBeats.slice(-N);
-          let rSorted = [...recent].sort((a, b) => a - b);
-          let rMed = rSorted[Math.floor(rSorted.length / 2)];
-          if (recent.every(b => Math.abs(b - rMed) <= tol)) {
-              confidentLock = true;
-          }
-      }
-
-      let maxWaitTime = 8500;
       let timeElapsed = now - captureStartTime;
-      
-      let isNormalTimerUp = timeElapsed > normalTimer;
-      
-      // If the timer is up but we haven't found enough beats, we enter Overtime automatically.
-      // But if the string is totally dead, we evaluate immediately instead of staring at a blank screen.
-      let isSignalDead = snr < threshold.snr * 0.5;
-      let isMaxTimeUp = timeElapsed > maxWaitTime || (isNormalTimerUp && isSignalDead);
+      let isTimerUp = timeElapsed > strictTimer;
+      let isSignalDead = snr < threshold.snr * 0.4; 
 
-      if (confidentLock || isMaxTimeUp || (isNormalTimerUp && capturedBeats.length >= N)) {
-          if (capturedBeats.length >= 3) {
+      if (isTimerUp || (timeElapsed > 1500 && isSignalDead)) {
+          if (capturedBeats.length >= minBeatsRequired) {
               capturedBeats.sort((a,b) => a-b); 
               let median = capturedBeats[Math.floor(capturedBeats.length/2)];
               let stableCount = capturedBeats.filter(b => Math.abs(b - median) <= 0.6).length;
               
-              if (confidentLock || stableCount / capturedBeats.length >= 0.6 || median === 0.0) {
+              if (stableCount / capturedBeats.length >= 0.6 || median === 0.0) {
                   lockedAverage = median; 
                   avgEl.textContent = lockedAverage.toFixed(2);
                   $('captureStateLbl').textContent = 'LOCKED!'; $('captureStateLbl').style.color = '#00aa00'; captureState = 'LOCKED'; finalizeLog(); 
-              } else if (isMaxTimeUp) { 
+              } else { 
                   captureState = 'IDLE'; $('captureStateLbl').textContent = 'UNSTABLE'; $('captureStateLbl').style.color = '#d00000'; setTimeout(() => { if(!micPaused && captureState==='IDLE') resetCapture(); }, 1500); 
               }
-          } else if (isMaxTimeUp) { 
+          } else { 
               captureState = 'IDLE'; $('captureStateLbl').textContent = 'NO BEAT'; $('captureStateLbl').style.color = '#d00000'; setTimeout(() => { if(!micPaused && captureState==='IDLE') resetCapture(); }, 1500); 
           }
       }
