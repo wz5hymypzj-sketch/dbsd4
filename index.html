@@ -1048,18 +1048,13 @@ function checkStep5() {
   if(!f3 || !a3 || !c4) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Awaiting logs..."; return; }
   let r1 = ((a3 - f3) / f3) * 100, r2 = ((c4 - a3) / a3) * 100;
   let html = `F3&rarr;A3: +${r1.toFixed(0)}% | A3&rarr;C#4: +${r2.toFixed(0)}%<br>`;
-  let target = 26, tol = 8;
+  let target = 28, tol = 8;
   
-  if (Math.abs(r2 - target) <= tol && Math.abs(r1 - target) <= tol) { 
+  if (Math.abs(r2 - target) <= tol) { 
       res.className = 'guide-result guide-res-pass'; html += `✔ PROPORTIONAL SPACING!`; 
   } else { 
       res.className = 'guide-result guide-res-warn'; 
-      if (r2 > target + tol) {
-          html += `Jump too large (+${r2.toFixed(0)}%). C#4 is FLAT. Adjust C#4 (SHARPEN).<br>`;
-      } else {
-          html += `Jump too small (+${r2.toFixed(0)}%). C#4 is SHARP. Adjust C#4 (FLATTEN).<br>`;
-      }
-      html += `<button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeAndTarget(61, 'M3')">FIX C#4 (M3)</button>`; 
+      html += `Uneven Jump (+${r2.toFixed(0)}%). C#4 is likely ${r2 > target ? 'flat' : 'sharp'}.<br><button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeAndTarget(61, 'M3')">FIX C#4 (M3)</button>`; 
   }
   res.innerHTML = html;
 }
@@ -1117,54 +1112,105 @@ function progressiveM3Check(htmlSoFar, resEl) {
 }
 
 function checkStep6() {
-  let p4_a = getLogVal('P4', 'F3'), p4_d = getLogVal('P4', 'A#3'), p5_g = getLogVal('P5', 'G#3'); 
+  let p5 = getLogVal('P5', 'F#3'), p4_f = getLogVal('P4', 'F3'), m3f = getLogVal('M3', 'F#3'); 
   let res = $('guideRes6');
 
-  if (!p4_a && !p4_d && !p5_g) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Log intervals to place A#3, D#4, G#3..."; return; }
+  let html = '';
+  if (!p5 && !p4_f && !m3f) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Log intervals to place F#3 and A#3..."; return; }
 
-  let html = ''; let err = false;
-  let chk1 = checkP4P5(p4_a, 'P4', 'F3', 'A#3', 'UPPER'); if(chk1) { html += chk1.html; if(chk1.isError) err = true; }
-  let chk2 = checkP4P5(p4_d, 'P4', 'A#3', 'D#4', 'UPPER'); if(chk2) { html += chk2.html; if(chk2.isError) err = true; }
-  let chk3 = checkP4P5(p5_g, 'P5', 'D#4', 'G#3', 'LOWER'); if(chk3) { html += chk3.html; if(chk3.isError) err = true; }
+  let err = false;
+  if (p5) {
+      if (p5 < 0.3 || p5 > 1.0) { html += `<span style="color:#d00000;">F#3 P5: ${p5.toFixed(1)} (Aim 0.3-0.8)</span><br><span style="font-size:0.65rem; color:#444;">Adjust F#3 pin.</span><br>`; err = true; }
+      else html += `<span style="color:#006600;">F#3 P5: ${p5.toFixed(1)} ✔</span><br>`;
+  }
+  if (p4_f) {
+      if (p4_f < 0.6 || p4_f > 1.4) { html += `<span style="color:#d00000;">F3 P4 (A#3): ${p4_f.toFixed(1)} (Aim 0.6-1.2)</span><br><span style="font-size:0.65rem; color:#444;">Adjust A#3 pin.</span><br>`; err = true; }
+      else html += `<span style="color:#006600;">F3 P4 (A#3): ${p4_f.toFixed(1)} ✔</span><br>`;
+  }
 
-  if (progressiveM3Check(html, res)) return;
+  if(!m3f) {
+      res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-wait';
+      res.innerHTML = html + "<br><i>Log M3 to check dip...</i>";
+      return;
+  }
 
+  let m3_prev = getLogVal('M3', 'F3');
+  if (m3_prev && m3f <= m3_prev) {
+      res.className = 'guide-result guide-res-warn';
+      res.innerHTML = html + `<br><b style="color:#d00000;">DIP DETECTED:</b> F#3 M3 (${m3f.toFixed(1)}) is slower than F3 M3 (${m3_prev.toFixed(1)}). F#3 is FLAT or A#3 is SHARP.<br><button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeCluster(54, 'M3', [{m:54,i:'M3'}])">FIX F#3 / A#3</button>`;
+      return;
+  }
+  
   res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-pass';
-  res.innerHTML = html;
+  res.innerHTML = html + `<br>✔ No M3 Dip Detected.`;
 }
 
 function checkStep7() {
-  let p5_f = getLogVal('P5', 'F#3'), p4_b = getLogVal('P4', 'F#3'), p4_e = getLogVal('P4', 'B3'); 
+  let p5 = getLogVal('P5', 'G3'), p4_b = getLogVal('P4', 'F#3'), m3_b = getLogVal('M3', 'G3'); 
   let res = $('guideRes7');
 
-  if (!p5_f && !p4_b && !p4_e) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Log intervals to place F#3, B3, E4..."; return; }
+  let html = '';
+  if (!p5 && !p4_b && !m3_b) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Log intervals to place G3 and B3..."; return; }
 
-  let html = ''; let err = false;
-  let chk1 = checkP4P5(p5_f, 'P5', 'C#4', 'F#3', 'LOWER'); if(chk1) { html += chk1.html; if(chk1.isError) err = true; }
-  let chk2 = checkP4P5(p4_b, 'P4', 'F#3', 'B3', 'UPPER'); if(chk2) { html += chk2.html; if(chk2.isError) err = true; }
-  let chk3 = checkP4P5(p4_e, 'P4', 'B3', 'E4', 'UPPER'); if(chk3) { html += chk3.html; if(chk3.isError) err = true; }
+  let err = false;
+  if (p5) {
+      if (p5 < 0.3 || p5 > 1.0) { html += `<span style="color:#d00000;">G3 P5: ${p5.toFixed(1)} (Aim 0.3-0.8)</span><br><span style="font-size:0.65rem; color:#444;">Adjust G3 pin.</span><br>`; err = true; }
+      else html += `<span style="color:#006600;">G3 P5: ${p5.toFixed(1)} ✔</span><br>`;
+  }
+  if (p4_b) {
+      if (p4_b < 0.6 || p4_b > 1.4) { html += `<span style="color:#d00000;">F#3 P4 (B3): ${p4_b.toFixed(1)} (Aim 0.6-1.2)</span><br><span style="font-size:0.65rem; color:#444;">Adjust B3 pin.</span><br>`; err = true; }
+      else html += `<span style="color:#006600;">F#3 P4 (B3): ${p4_b.toFixed(1)} ✔</span><br>`;
+  }
 
-  if (progressiveM3Check(html, res)) return;
+  if(!m3_b) {
+      res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-wait';
+      res.innerHTML = html + "<br><i>Log M3 to check dip...</i>";
+      return;
+  }
 
+  let m3_prev = getLogVal('M3', 'F#3');
+  if (m3_prev && m3_b <= m3_prev) {
+      res.className = 'guide-result guide-res-warn';
+      res.innerHTML = html + `<br><b style="color:#d00000;">DIP DETECTED:</b> G3 M3 (${m3_b.toFixed(1)}) is slower than F#3 M3 (${m3_prev.toFixed(1)}). G3 is FLAT or B3 is SHARP.<br><button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeCluster(55, 'M3', [{m:55,i:'M3'}])">FIX G3 / B3</button>`;
+      return;
+  }
+  
   res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-pass';
-  res.innerHTML = html;
+  res.innerHTML = html + `<br>✔ No M3 Dip Detected.`;
 }
 
 function checkStep8() {
-  let p4_d = getLogVal('P4', 'A3'), p5_g = getLogVal('P5', 'G3'), p4_c = getLogVal('P4', 'G3'); 
+  let p5 = getLogVal('P5', 'G#3'), p4_b = getLogVal('P4', 'G3'), m3_b = getLogVal('M3', 'G#3'); 
   let res = $('guideRes8');
 
-  if (!p4_d && !p5_g && !p4_c) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Log intervals to place D4, G3, C4..."; return; }
+  let html = '';
+  if (!p5 && !p4_b && !m3_b) { res.className = 'guide-result guide-res-wait'; res.innerHTML = "Log intervals to place G#3 and C4..."; return; }
 
-  let html = ''; let err = false;
-  let chk1 = checkP4P5(p4_d, 'P4', 'A3', 'D4', 'UPPER'); if(chk1) { html += chk1.html; if(chk1.isError) err = true; }
-  let chk2 = checkP4P5(p5_g, 'P5', 'D4', 'G3', 'LOWER'); if(chk2) { html += chk2.html; if(chk2.isError) err = true; }
-  let chk3 = checkP4P5(p4_c, 'P4', 'G3', 'C4', 'UPPER'); if(chk3) { html += chk3.html; if(chk3.isError) err = true; }
+  let err = false;
+  if (p5) {
+      if (p5 < 0.3 || p5 > 1.0) { html += `<span style="color:#d00000;">G#3 P5: ${p5.toFixed(1)} (Aim 0.3-0.8)</span><br><span style="font-size:0.65rem; color:#444;">Adjust G#3 pin.</span><br>`; err = true; }
+      else html += `<span style="color:#006600;">G#3 P5: ${p5.toFixed(1)} ✔</span><br>`;
+  }
+  if (p4_b) {
+      if (p4_b < 0.6 || p4_b > 1.4) { html += `<span style="color:#d00000;">G3 P4 (C4): ${p4_b.toFixed(1)} (Aim 0.6-1.2)</span><br><span style="font-size:0.65rem; color:#444;">Adjust C4 pin.</span><br>`; err = true; }
+      else html += `<span style="color:#006600;">G3 P4 (C4): ${p4_b.toFixed(1)} ✔</span><br>`;
+  }
 
-  if (progressiveM3Check(html, res)) return;
+  if(!m3_b) {
+      res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-wait';
+      res.innerHTML = html + "<br><i>Log M3 to check dip...</i>";
+      return;
+  }
 
+  let m3_prev = getLogVal('M3', 'G3');
+  if (m3_prev && m3_b <= m3_prev) {
+      res.className = 'guide-result guide-res-warn';
+      res.innerHTML = html + `<br><b style="color:#d00000;">DIP DETECTED:</b> G#3 M3 (${m3_b.toFixed(1)}) is slower than G3 M3 (${m3_prev.toFixed(1)}). G#3 is FLAT or C4 is SHARP.<br><button class="ctrl-btn fix-btn" style="margin-top:4px;" onclick="wipeCluster(56, 'M3', [{m:56,i:'M3'}])">FIX G#3 / C4</button>`;
+      return;
+  }
+  
   res.className = err ? 'guide-result guide-res-warn' : 'guide-result guide-res-pass';
-  res.innerHTML = html;
+  res.innerHTML = html + `<br>✔ No M3 Dip Detected.`;
 }
 
 function checkStep9() {
@@ -1624,9 +1670,9 @@ function renderLoop(ts) {
       }
       
       let N, tol, normalTimer;
-      if (cfg.theoBeat > 6.0) { N = 8; tol = 0.2; normalTimer = 2000; }
-      else if (cfg.theoBeat >= 3.0) { N = 6; tol = 0.15; normalTimer = 3000; }
-      else { N = 5; tol = 0.1; normalTimer = 4000; }
+      if (cfg.theoBeat > 6.0) { N = 8; tol = 0.2; normalTimer = 2500; }
+      else if (cfg.theoBeat >= 3.0) { N = 6; tol = 0.15; normalTimer = 4000; }
+      else { N = 5; tol = 0.1; normalTimer = 5500; }
 
       let confidentLock = false;
       if (capturedBeats.length >= N) {
@@ -1638,23 +1684,32 @@ function renderLoop(ts) {
           }
       }
 
-      let maxWaitTime = 8000;
+      let maxWaitTime = 8500;
       let timeElapsed = now - captureStartTime;
       
       let isNormalTimerUp = timeElapsed > normalTimer;
-      let isOvertimeAndHasBeats = isNormalTimerUp && capturedBeats.length >= 3;
-      let isMaxTimeUp = timeElapsed > maxWaitTime;
-      let isSignalDead = snr < threshold.snr * 0.8;
+      
+      // If the timer is up but we haven't found enough beats, we enter Overtime automatically.
+      // But if the string is totally dead, we evaluate immediately instead of staring at a blank screen.
+      let isSignalDead = snr < threshold.snr * 0.5;
+      let isMaxTimeUp = timeElapsed > maxWaitTime || (isNormalTimerUp && isSignalDead);
 
-      if (confidentLock || isOvertimeAndHasBeats || isMaxTimeUp || isSignalDead) {
+      if (confidentLock || isMaxTimeUp || (isNormalTimerUp && capturedBeats.length >= N)) {
           if (capturedBeats.length >= 3) {
-              capturedBeats.sort((a,b) => a-b); let median = capturedBeats[Math.floor(capturedBeats.length/2)];
+              capturedBeats.sort((a,b) => a-b); 
+              let median = capturedBeats[Math.floor(capturedBeats.length/2)];
               let stableCount = capturedBeats.filter(b => Math.abs(b - median) <= 0.6).length;
+              
               if (confidentLock || stableCount / capturedBeats.length >= 0.6 || median === 0.0) {
-                  lockedAverage = median; avgEl.textContent = lockedAverage.toFixed(2);
+                  lockedAverage = median; 
+                  avgEl.textContent = lockedAverage.toFixed(2);
                   $('captureStateLbl').textContent = 'LOCKED!'; $('captureStateLbl').style.color = '#00aa00'; captureState = 'LOCKED'; finalizeLog(); 
-              } else { captureState = 'IDLE'; $('captureStateLbl').textContent = 'UNSTABLE'; $('captureStateLbl').style.color = '#d00000'; setTimeout(() => { if(!micPaused && captureState==='IDLE') resetCapture(); }, 1500); }
-          } else { captureState = 'IDLE'; $('captureStateLbl').textContent = 'NO BEAT'; $('captureStateLbl').style.color = '#d00000'; setTimeout(() => { if(!micPaused && captureState==='IDLE') resetCapture(); }, 1500); }
+              } else if (isMaxTimeUp) { 
+                  captureState = 'IDLE'; $('captureStateLbl').textContent = 'UNSTABLE'; $('captureStateLbl').style.color = '#d00000'; setTimeout(() => { if(!micPaused && captureState==='IDLE') resetCapture(); }, 1500); 
+              }
+          } else if (isMaxTimeUp) { 
+              captureState = 'IDLE'; $('captureStateLbl').textContent = 'NO BEAT'; $('captureStateLbl').style.color = '#d00000'; setTimeout(() => { if(!micPaused && captureState==='IDLE') resetCapture(); }, 1500); 
+          }
       }
   }
 }
