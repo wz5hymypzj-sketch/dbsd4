@@ -19,7 +19,7 @@
   }
 </script>
 
-<title>DAN'S BEAT SPEED DETECTOR - V48</title>
+<title>DAN'S BEAT SPEED DETECTOR - V49</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -127,7 +127,7 @@
   }
   #captureStateLbl { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; font-weight: 900; color: #666; text-transform: uppercase; }
 
-  /* STRICT FLEXBOX BOUNDARIES TO PREVENT SCROLL BLOWOUT */
+  /* STRICT FLEXBOX BOUNDARIES */
   .layout-wrapper { display: flex; flex-direction: column; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
   .left-panel { display: flex; flex-direction: column; flex-shrink: 0; }
   .right-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
@@ -148,7 +148,6 @@
   .btn-del { background: transparent; border: 1px solid #d00000; color: #d00000; border-radius: 4px; font-weight: bold; cursor: pointer; padding: 2px 6px; font-size: 0.7rem; }
   .btn-del:active { background: #d00000; color: #fff; }
   
-  /* Feature: Clickable log rows for instantaneous targeting */
   .log-row { cursor: pointer; transition: background 0.1s; }
   .log-row:active { background: #e0e0e0 !important; }
 
@@ -607,17 +606,14 @@ window.startAudioEngine = async function() {
     if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
     
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
-        micStream = stream;
-        const constraints = await getBuiltInMicConstraints();
-        if (constraints.deviceId) {
-            stream.getTracks().forEach(t => t.stop());
-            const betterStream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
-            micStream = betterStream;
-        }
-        
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') await audioCtx.resume();
+        
+        // Single, clean microphone request for iOS PWA stability
+        micStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } 
+        });
+        
         const src = audioCtx.createMediaStreamSource(micStream);
         
         analyserFull = audioCtx.createAnalyser(); analyserFull.fftSize = 4096; analyserFull.smoothingTimeConstant = 0.7;
@@ -646,6 +642,7 @@ window.startAudioEngine = async function() {
         lastEnvelope = 0; rafId = requestAnimationFrame(renderLoop);
     } catch (e) {
         console.warn("Audio start failed: ", e);
+        alert("Microphone access failed. Please ensure mic permissions are granted in iOS Settings for Home Screen apps.");
         if(!isRunning) $('startOverlay').style.display = 'flex';
     }
 }
@@ -803,9 +800,9 @@ function switchGuideTab(tab) {
   $('gPane-' + tab).classList.add('active');
 }
 
-// FULLY SYNCED TARGET SETTER
 window.setTarget = function(midi, ivKey) {
   lowerMidi = midi; 
+  
   document.querySelectorAll('.listen-btn').forEach(b => b.classList.remove('active-listen'));
   
   if (ivKey.startsWith('OCT_')) {
@@ -1007,7 +1004,6 @@ function renderLogTable() {
       const c = entries[i];
       const rowStyle = c.isWrong ? 'background-color: #ffeaea; color: #d00000; font-weight: 700;' : '';
       const strikeCountStr = c.strikes.length > 1 ? ` <span style="font-size:0.6rem; color:#666;">(${c.strikes.length}x)</span>` : '';
-      // SYNC BUG FIX: Tapping the log row perfectly switches the target!
       tb.innerHTML += `<tr class="log-row" style="${rowStyle}" onclick="setTarget(${c.midi}, '${curIv}')">
         <td><b>${curIv}</b></td><td style="font-weight:800;">${c.noteName}</td>
         <td style="font-weight:700; font-size:0.85rem;">${c.measured.toFixed(2)}${strikeCountStr}</td>
@@ -1560,23 +1556,13 @@ $('bigStartBtn').addEventListener('click', async () => {
     monitorGain = audioCtx.createGain(); monitorGain.gain.value = monitorOn && !micPaused ? 25.0 : 0.0;
     scriptNode = audioCtx.createScriptProcessor(1024, 1, 1);
 
-    src.connect(analyserFull); 
-    src.connect(filters[0]); 
-    filters[0].connect(filters[1]); 
-    filters[1].connect(gainNode); 
-    filters[1].connect(monitorGain); 
-    monitorGain.connect(audioCtx.destination);
-    gainNode.connect(scriptNode); 
-    scriptNode.connect(audioCtx.destination);
+    src.connect(analyserFull); src.connect(filters[0]); filters[0].connect(filters[1]);
+    filters[1].connect(gainNode); filters[1].connect(monitorGain); monitorGain.connect(audioCtx.destination);
+    gainNode.connect(scriptNode); scriptNode.connect(audioCtx.destination);
 
     scriptNode.onaudioprocess = buildAudioProcessor();
-    isRunning = true; 
-    if(rafId) cancelAnimationFrame(rafId);
-    lastEnvelope = 0; rafId = requestAnimationFrame(renderLoop);
-  } catch (e) {
-    console.warn("Audio start failed: ", e);
-    if(!isRunning) $('startOverlay').style.display = 'flex';
-  }
+    isRunning = true; lastEnvelope = 0; rafId = requestAnimationFrame(renderLoop);
+  } catch(e) { alert('Microphone setup failed:\n' + e.message); $('startOverlay').style.display = 'flex'; }
 });
 
 let smoothedEnvelope = 0; 
@@ -1612,8 +1598,7 @@ function buildAudioProcessor() {
       else { 
           envHistory.push({ val: envelopeRunning }); 
           const fps = audioCtx.sampleRate / currentChunkSize; 
-          // Extended history buffer so the 7.5s wait doesn't eat its own tail!
-          if (envHistory.length > Math.round(8.0 * fps)) envHistory.shift(); 
+          if (envHistory.length > Math.round(7.5 * fps)) envHistory.shift(); 
       }
     }
   };
@@ -1665,11 +1650,9 @@ function renderLoop(ts) {
                   let recent = capturedBeats.slice(-8);
                   let sorted = [...recent].sort((a,b)=>a-b);
                   let med = sorted[4];
-                  // Relaxed tolerance: allows 10% or 0.8 bps deviation for fast locking
-                  let tol = Math.max(0.8, med * 0.1); 
+                  let tol = Math.max(1.0, med * 0.15); 
                   let stable = recent.filter(b => Math.abs(b - med) <= tol).length;
                   
-                  // Relaxed stability req: 5 out of 8 frames
                   if (stable >= 5) { 
                       lockedAverage = med; 
                       avgEl.textContent = lockedAverage.toFixed(2);
@@ -1687,9 +1670,8 @@ function renderLoop(ts) {
       
       let maxWaitTime = isFastMode ? 3500 : 7500;
       
-      // Extended early timeout drop condition
       if (now - captureStartTime > maxWaitTime || snr < threshold.snr * 0.8 || envelopeRunning < threshold.env * 0.8) {
-          if (capturedBeats.length >= 2) {
+          if (capturedBeats.length >= 1) { 
               capturedBeats.sort((a,b) => a-b); 
               let median = capturedBeats[Math.floor(capturedBeats.length/2)];
               lockedAverage = median; 
@@ -1773,27 +1755,6 @@ function detectBeat(history, theoreticalBeat, ivKey) {
   
   return maxScore > 0.005 ? bestCandidate : null;
 }
-
-$('clearBtn').addEventListener('click', () => { loggedIntervals = { M3: [], M6: [], P4: [], P5: [], OCT_42: [], OCT_63: [], OCT_21: [], M10: [], 'OCT+2': [], M17: [] }; savePersistence(); resetCapture(); renderLogTable(); analyzeTemperament(); updateGuide(); updateDynRes(); });
-
-// SYNC FIX: Centralize tab clicks through the setTarget function
-document.querySelectorAll('.iv-tab').forEach(t => { 
-  t.addEventListener('click', () => { 
-    let selectedIv = t.dataset.iv;
-    
-    if (selectedIv === 'OCT') {
-        if (t.classList.contains('on')) {
-            if (currentOctMode === 'OCT_42') { currentOctMode = 'OCT_63'; }
-            else if (currentOctMode === 'OCT_63') { currentOctMode = 'OCT_21'; }
-            else { currentOctMode = 'OCT_42'; }
-        }
-        selectedIv = currentOctMode;
-    }
-    setTarget(lowerMidi, selectedIv);
-  }); 
-});
-
-enforceReblitzLimits(); buildPianoRoll(); renderDynExpanders(); renderSweep();
 </script>
 </body>
 </html>
