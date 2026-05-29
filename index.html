@@ -19,7 +19,7 @@
   }
 </script>
 
-<title>DAN'S BEAT SPEED DETECTOR - V31</title>
+<title>DAN'S BEAT SPEED DETECTOR - V32</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -151,7 +151,7 @@
   .guide-step { border: 2px solid #000; border-radius: 6px; padding: 8px; background: #fff; }
   .guide-step h3 { font-size: 0.85rem; color: #000; margin-bottom: 4px; text-transform: uppercase; font-weight: 900; background: #eee; padding: 4px; border-radius: 2px; text-align: center; }
   .guide-step p { font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; color: #444; line-height: 1.2; text-align: center; }
-  .tuning-target { font-weight: 900; color: #d00000; text-align: center; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tuning-target { font-weight: 700; color: #000; text-align: center; margin-bottom: 6px; font-size: 0.75rem; }
   
   #gPane-UP, #gPane-DOWN, #gPane-CHECK { overflow-y: hidden; justify-content: center; }
 
@@ -164,9 +164,7 @@
   .action-btn.logged { background: #e6ffe6; border-color: #00aa00; color: #006600; box-shadow: 0 2px 0 #00aa00; }
   .action-btn.logged:active { box-shadow: 0 0 0 #00aa00; }
 
-  .listen-btn { background: #f3e6ff; border: 1px solid #aa00ff; color: #6600cc; box-shadow: 0 2px 0 #aa00ff; }
-  .listen-btn:active { box-shadow: 0 0 0 #aa00ff; }
-  .listen-btn.active-listen { background: #aa00ff; color: #fff; box-shadow: 0 0 0 #aa00ff; transform: translateY(2px); }
+  .listen-btn.active-listen { background: #0066ff; color: #fff; box-shadow: 0 0 0 #0066ff; transform: translateY(2px); }
 
   .guide-result { font-size: 0.75rem; font-weight: 600; padding: 6px; background: #fff; border: 1px dashed #000; text-align: center; line-height: 1.4; border-radius: 4px; }
   .guide-res-wait { background: #f4f4f4; color: #666; border: 1px dashed #999; font-style: italic; }
@@ -423,17 +421,17 @@
         <div class="guide-pane active" id="gPane-TEMP">
           <div class="guide-step">
             <h3>Step 1: Set Pitch</h3>
-            <div class="tuning-target">🎯 TUNING: A4</div>
+            <div class="tuning-target">Tuning: A4</div>
             <button class="ctrl-btn" id="btnTunerToggle" style="width:100%; margin-bottom:4px; font-size:0.8rem;">TUNER: OFF</button>
             <div class="guide-result guide-res-wait" id="tunerReadout" style="min-height: 38px; display:flex; align-items:center; justify-content:center; flex-direction:column;">--- Hz</div>
           </div>
           <div class="guide-step">
             <h3>Step 2: Prove A3 Octave</h3>
-            <div class="tuning-target">🎯 TUNING: A3</div>
+            <div class="tuning-target">Tuning: A3</div>
             <div class="action-row">
-              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_42')">LISTEN A3 (4:2)</button>
-              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_63')">LISTEN A3 (6:3)</button>
-              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_21')">LISTEN A3 (2:1)</button>
+              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_42')">4:2</button>
+              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_63')">6:3</button>
+              <button class="action-btn listen-btn" onclick="handleListen(this, 57, 'OCT_21')">2:1</button>
             </div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="M3" data-label="F3 (M3)" onclick="handleAction(this, 53, 'M3')">F3 (M3)</button>
@@ -443,16 +441,16 @@
           </div>
           <div class="guide-step">
             <h3>Step 3: Set F3 Anchor</h3>
-            <div class="tuning-target">🎯 TUNING: F3</div>
+            <div class="tuning-target">Tuning: F3</div>
             <p>Aim for ~6.93 bps.</p>
             <div class="action-row"><button class="action-btn" data-midi="53" data-iv="M3" data-label="F3 (M3)" onclick="handleAction(this, 53, 'M3')">F3 (M3)</button></div>
             <div class="guide-result guide-res-wait" id="guideRes3">Awaiting logs...</div>
           </div>
           <div class="guide-step">
             <h3>Step 4: Prove F4 Octave</h3>
-            <div class="tuning-target">🎯 TUNING: F4</div>
+            <div class="tuning-target">Tuning: F4</div>
             <div class="action-row">
-              <button class="action-btn listen-btn" onclick="handleListen(this, 53, 'OCT_42')">LISTEN F4 (4:2)</button>
+              <button class="action-btn listen-btn" onclick="handleListen(this, 53, 'OCT_42')">4:2</button>
             </div>
             <div class="action-row">
               <button class="action-btn" data-midi="49" data-iv="M3" data-label="C#3 (M3)" onclick="handleAction(this, 49, 'M3')">C#3 (M3)</button>
@@ -462,7 +460,7 @@
           </div>
           <div class="guide-step">
             <h3>Step 5: 'F' Skeleton (Contiguous 3rds)</h3>
-            <div class="tuning-target">🎯 TUNING: C#4</div>
+            <div class="tuning-target">Tuning: C#4</div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="M3" data-label="F3 (M3)" onclick="handleAction(this, 53, 'M3')">F3 (M3)</button>
               <button class="action-btn" data-midi="57" data-iv="M3" data-label="A3 (M3)" onclick="handleAction(this, 57, 'M3')">A3 (M3)</button>
@@ -472,7 +470,7 @@
           </div>
           <div class="guide-step">
             <h3>Step 6: 'F#' Skeleton</h3>
-            <div class="tuning-target">🎯 TUNING: A#3 (and F#3)</div>
+            <div class="tuning-target">Tuning: A#3 (and F#3)</div>
             <div class="action-row">
               <button class="action-btn" data-midi="54" data-iv="P5" data-label="F#3 (P5)" onclick="handleAction(this, 54, 'P5')">F#3 (P5)</button>
               <button class="action-btn" data-midi="53" data-iv="P4" data-label="F3 (P4)" onclick="handleAction(this, 53, 'P4')">F3 (P4)</button>
@@ -484,7 +482,7 @@
           </div>
           <div class="guide-step">
             <h3>Step 7: 'G' Skeleton</h3>
-            <div class="tuning-target">🎯 TUNING: B3 (and G3)</div>
+            <div class="tuning-target">Tuning: B3 (and G3)</div>
             <div class="action-row">
               <button class="action-btn" data-midi="55" data-iv="P5" data-label="G3 (P5)" onclick="handleAction(this, 55, 'P5')">G3 (P5)</button>
               <button class="action-btn" data-midi="54" data-iv="P4" data-label="F#3 (P4)" onclick="handleAction(this, 54, 'P4')">F#3 (P4)</button>
@@ -496,7 +494,7 @@
           </div>
           <div class="guide-step">
             <h3>Step 8: 'G#' Skeleton</h3>
-            <div class="tuning-target">🎯 TUNING: C4 (and G#3)</div>
+            <div class="tuning-target">Tuning: C4 (and G#3)</div>
             <div class="action-row">
               <button class="action-btn" data-midi="56" data-iv="P5" data-label="G#3 (P5)" onclick="handleAction(this, 56, 'P5')">G#3 (P5)</button>
               <button class="action-btn" data-midi="55" data-iv="P4" data-label="G3 (P4)" onclick="handleAction(this, 55, 'P4')">G3 (P4)</button>
@@ -508,7 +506,7 @@
           </div>
           <div class="guide-step">
             <h3>Step 9: P4/P5 Verification</h3>
-            <div class="tuning-target">🎯 VERIFYING OVERLAPS</div>
+            <div class="tuning-target">Verifying Overlaps</div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="P5" data-label="F3 (P5)" onclick="handleAction(this, 53, 'P5')">F3 (P5)</button>
               <button class="action-btn" data-midi="60" data-iv="P4" data-label="C4 (P4)" onclick="handleAction(this, 60, 'P4')">C4 (P4)</button>
@@ -519,7 +517,7 @@
           </div>
           <div class="guide-step">
             <h3>Step 10: Chromatic M3 Sweep</h3>
-            <div class="tuning-target">🎯 TARGETING REFINEMENTS</div>
+            <div class="tuning-target">Targeting Refinements</div>
             <div class="action-row">
               <button class="action-btn" data-midi="53" data-iv="M3" data-label="F3" onclick="handleAction(this, 53, 'M3')">F3</button>
               <button class="action-btn" data-midi="54" data-iv="M3" data-label="F#3" onclick="handleAction(this, 54, 'M3')">F#3</button>
@@ -843,8 +841,8 @@ window.handleListen = function(btn, midi, ivKey) {
     
     // Suspend Recording
     captureState = 'LISTEN_ONLY';
-    $('captureStateLbl').textContent = 'PASS-THROUGH';
-    $('captureStateLbl').style.color = '#aa00aa';
+    $('captureStateLbl').textContent = 'LISTENING';
+    $('captureStateLbl').style.color = '#0066ff'; // Standard blue
     
     // Auto-enable pass-through audio if it's off
     if (!monitorOn) {
@@ -1218,10 +1216,10 @@ function renderDynExpanders() {
   let uP8 = expUpMidi - 12, uM10 = expUpMidi - 16, uM17 = expUpMidi - 28, uDouble = expUpMidi - 24;
   
   if(uP8 >= 21) {
-      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_42')">LISTEN 4:2</button>`;
-      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_63')">LISTEN 6:3</button>`;
-      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_21')">LISTEN 2:1</button>`;
-      if(uDouble >= 21) lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uDouble}, 'OCT+2')">LISTEN OCT+2</button>`;
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_42')">4:2</button>`;
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_63')">6:3</button>`;
+      lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uP8}, 'OCT_21')">2:1</button>`;
+      if(uDouble >= 21) lBtnsU += `<button class="action-btn listen-btn" onclick="handleListen(this, ${uDouble}, 'OCT+2')">OCT+2</button>`;
       
       uBtns += `<button class="action-btn" onclick="handleAction(this, ${uP8}, 'OCT_42')" data-midi="${uP8}" data-iv="OCT_42" data-label="${noteName(uP8)} (OCT)">${noteName(uP8)} (OCT)</button>`;
   }
@@ -1235,10 +1233,10 @@ function renderDynExpanders() {
   let lBtnsD = ''; let dBtns = '';
   
   if(expDownMidi + 12 <= 108) {
-      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_42')">LISTEN 4:2</button>`;
-      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_63')">LISTEN 6:3</button>`;
-      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_21')">LISTEN 2:1</button>`;
-      if(expDownMidi + 24 <= 108) lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT+2')">LISTEN OCT+2</button>`;
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_42')">4:2</button>`;
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_63')">6:3</button>`;
+      lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT_21')">2:1</button>`;
+      if(expDownMidi + 24 <= 108) lBtnsD += `<button class="action-btn listen-btn" onclick="handleListen(this, ${expDownMidi}, 'OCT+2')">OCT+2</button>`;
       
       dBtns += `<button class="action-btn" onclick="handleAction(this, ${expDownMidi}, 'OCT_42')" data-midi="${expDownMidi}" data-iv="OCT_42" data-label="${noteName(expDownMidi)} (OCT)">${noteName(expDownMidi)} (OCT)</button>`;
   }
@@ -1402,11 +1400,11 @@ function renderLoop(ts) {
   if (!isRunning) return; rafId = requestAnimationFrame(renderLoop); if (micPaused) return;
   
   if (captureState === 'LISTEN_ONLY') {
-      $('captureStateLbl').textContent = 'LISTENING...'; 
-      $('captureStateLbl').style.color = '#aa00aa';
-      // Flash the signal light based on generic volume just for visual feedback
+      $('captureStateLbl').textContent = 'LISTENING'; 
+      $('captureStateLbl').style.color = '#0066ff';
+      // Flash the signal light standard green based on general volume
       const snr = envelopeRunning / noiseFloor;
-      if (snr > 1.5 && envelopeRunning > 0.0005) sigLight.style.background = '#aa00aa'; 
+      if (snr > 1.5 && envelopeRunning > 0.0005) sigLight.style.background = '#00ff00'; 
       else sigLight.style.background = '#e0e0e0';
       return; // Suspend all auto-logging logic
   }
